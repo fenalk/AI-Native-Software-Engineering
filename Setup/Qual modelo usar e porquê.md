@@ -1,203 +1,216 @@
 # Conceitos fundamentais de modelos de IA
 
-Quatro conceitos são fundamentais para entender como funcionam os modelos de Inteligência Artificial (LLMs), como GPT, Claude, Gemini e DeepSeek:
+Para escolher e utilizar modelos de linguagem de grande porte (LLMs), como GPT, Claude, Gemini e DeepSeek, é útil compreender quatro dimensões:
 
-- Janela de contexto (Context Window)
-- Custo de tokens (Token Cost)
-- Latência (Latency)
-- Qualidade de saída (Output Quality)
+- **Janela de contexto:** quanto conteúdo o modelo pode considerar em uma solicitação.
+- **Custo de tokens:** quanto custa processar as informações de entrada e gerar a resposta.
+- **Latência:** quanto tempo a aplicação leva para começar e concluir uma resposta.
+- **Qualidade de saída:** o quanto a resposta atende ao objetivo com correção, clareza e confiabilidade.
 
-Eles representam, respectivamente, quanto a IA consegue processar, quanto custa utilizá-la, quanto tempo demora para responder e quão boa é a resposta.
-
----
+Esses conceitos ajudam a comparar modelos e a tomar decisões de arquitetura. Nenhum deles, isoladamente, determina qual modelo é melhor: a escolha depende da tarefa, do orçamento e da experiência desejada.
 
 ## 1. Janela de contexto (Context Window)
 
-É a quantidade máxima de tokens que um modelo consegue considerar em uma única interação.
+A janela de contexto é o limite de tokens que um modelo pode considerar durante uma solicitação. Ela pode incluir instruções, mensagens anteriores, documentos, trechos de código, resultados de ferramentas e a resposta gerada. A composição exata desse limite varia de acordo com o modelo e a plataforma.
 
-Imagine que você está desenvolvendo um sistema e envia para a IA:
+Um **token** não equivale necessariamente a uma palavra ou caractere. A tokenização depende do idioma e do texto: uma palavra pode corresponder a um ou mais tokens, e código, pontuação e espaços também consomem tokens.
 
-- Requisitos do projeto.
-- Documentação.
-- Código-fonte.
-- Histórico de conversas.
-- Instruções de implementação.
+Imagine que você está desenvolvendo um sistema e fornece à IA:
 
-Todas essas informações ocupam espaço na janela de contexto.
+- Requisitos e instruções do projeto.
+- Documentação e exemplos.
+- Arquivos ou trechos do código-fonte.
+- Histórico da conversa.
+- Resultados de comandos ou ferramentas.
+
+Todo esse material precisa caber no contexto disponível, junto com a resposta que o modelo ainda vai produzir. Por isso, o espaço usado pela entrada pode reduzir o espaço restante para a saída. Algumas plataformas também têm limites de saída separados.
 
 ### Para que serve?
 
-- Determinar quanto conteúdo você pode fornecer à IA.
-- Trabalhar com projetos maiores.
-- Analisar arquivos extensos.
-- Manter informações relevantes durante uma tarefa.
+- Estimar quanto conteúdo pode ser enviado em uma interação.
+- Trabalhar com documentação ou bases de código extensas.
+- Preservar informações relevantes ao longo de uma tarefa.
+- Entender por que pode ser necessário resumir, selecionar ou recuperar informações sob demanda.
 
 ### Exemplo
 
-Um modelo com janela de contexto de 128 mil tokens consegue trabalhar com muito mais informações simultaneamente do que um modelo com 8 mil tokens.
+Um modelo com uma janela de 128 mil tokens pode, em princípio, considerar mais conteúdo simultaneamente do que outro com 8 mil tokens. Os números são apenas ilustrativos: limites e convenções devem ser confirmados na documentação do modelo e da API utilizados.
 
-**Importante:** uma janela de contexto maior não garante que o modelo compreenderá perfeitamente todas as informações fornecidas.
+**Importante:** uma janela maior não garante que o modelo compreenda ou utilize perfeitamente cada detalhe. Informações irrelevantes podem competir pela atenção, e o modelo ainda pode deixar passar fatos importantes em textos longos.
 
----
+### Boas práticas
+
+- Envie o contexto necessário, não todos os dados disponíveis.
+- Priorize requisitos, restrições e exemplos diretamente relacionados à tarefa.
+- Divida trabalhos extensos em etapas ou use busca e recuperação de trechos relevantes.
+- Confira se documentos grandes foram incluídos integralmente ou resumidos pela ferramenta utilizada.
 
 ## 2. Custo de tokens (Token Cost)
 
-É o valor cobrado pelo uso de um modelo de IA, geralmente calculado pela quantidade de tokens processados.
+O custo de tokens é o valor cobrado pelo uso de um modelo, sobretudo em APIs comerciais. Em geral, a cobrança é calculada com base no volume processado, mas os preços e as regras variam entre provedores, modelos e modalidades de uso.
 
-Existem dois tipos principais:
+As categorias mais comuns são:
 
-- **Tokens de entrada (Input):** informações que você envia para a IA, como prompts, arquivos e histórico.
-- **Tokens de saída (Output):** conteúdo que a IA produz, como respostas, explicações e código.
+- **Tokens de entrada (input):** instruções, perguntas, histórico, documentos e outros dados enviados ao modelo.
+- **Tokens de saída (output):** texto, código ou outros conteúdos gerados pelo modelo.
+- **Tokens em cache:** quando disponíveis, representam conteúdo de entrada reutilizado e podem ter uma tarifa diferente.
+- **Tokens de raciocínio:** alguns modelos ou APIs contabilizam separadamente tokens associados ao raciocínio interno; essa regra não é universal.
 
-Alguns provedores também cobram separadamente tokens de cache e raciocínio, dependendo do modelo e da API.
+### Como estimar o custo
 
-### Para que serve?
+Quando os preços são informados por milhão de tokens, uma estimativa simplificada é:
 
-- Controlar gastos com APIs de IA.
-- Comparar o custo-benefício entre modelos.
-- Planejar o orçamento de aplicações que utilizam IA.
-- Evitar desperdício de tokens em prompts desnecessariamente grandes.
+> **Custo = (tokens de entrada ÷ 1.000.000 × preço de entrada) + (tokens de saída ÷ 1.000.000 × preço de saída)**
 
-### Exemplo fictício
-
-Imagine que determinado modelo cobre:
+Considere um exemplo fictício:
 
 | Tipo | Preço por 1 milhão de tokens |
 |---|---:|
 | Entrada | US$ 1,00 |
 | Saída | US$ 4,00 |
 
-Se você utilizar 100 mil tokens de entrada e 20 mil de saída:
+Para 100 mil tokens de entrada e 20 mil tokens de saída:
 
-- Entrada: US$ 0,10.
-- Saída: US$ 0,08.
-- **Total: US$ 0,18.**
+- Entrada: 100.000 ÷ 1.000.000 × US$ 1,00 = **US$ 0,10**.
+- Saída: 20.000 ÷ 1.000.000 × US$ 4,00 = **US$ 0,08**.
+- **Total estimado: US$ 0,18.**
 
-Ou seja, gerar respostas pode custar mais do que enviar informações, dependendo do modelo.
-
----
-
-## 3. Latência (Latency)
-
-É o tempo que a IA leva para responder a uma solicitação.
-
-Por exemplo, você envia:
-
-> Crie uma função em Python que valide um CPF.
-
-Se a IA demora 2 segundos para começar a responder, existe uma latência inicial de aproximadamente 2 segundos.
-
-É importante conhecer duas medidas:
-
-- **Time to First Token (TTFT):** tempo até a IA começar a gerar a resposta.
-- **Tempo total de resposta:** tempo necessário para terminar de gerar toda a resposta.
+Os valores são apenas ilustrativos e não representam a tabela de preços de um provedor específico. A fatura real pode incluir regras adicionais, como cache, ferramentas, modalidades de processamento, impostos ou arredondamentos.
 
 ### Para que serve?
 
-- Avaliar a velocidade de resposta.
-- Melhorar a experiência dos usuários.
-- Escolher modelos para aplicações em tempo real.
-- Identificar gargalos em sistemas que utilizam IA.
+- Controlar os gastos com APIs de IA.
+- Comparar o custo-benefício entre modelos.
+- Prever o orçamento de uma aplicação conforme o volume de uso.
+- Identificar o impacto de históricos longos ou respostas extensas.
+
+### Boas práticas
+
+- Consulte os preços e a forma de contabilização na documentação oficial do provedor.
+- Meça o consumo com dados reais, pois prompts semelhantes podem gerar quantidades diferentes de tokens.
+- Remova contexto repetido ou irrelevante e limite o tamanho das respostas quando apropriado.
+- Considere o custo por tarefa concluída, não apenas o preço por token: um modelo mais caro pode exigir menos tentativas ou correções.
+
+## 3. Latência (Latency)
+
+Latência é o tempo decorrido entre o envio de uma solicitação e a resposta do sistema. Ela é influenciada pelo modelo, pelo tamanho da entrada e da saída, pela infraestrutura, pela rede, pela fila de processamento e por ferramentas externas que participem da operação.
+
+Duas medidas ajudam a descrever a experiência:
+
+- **Time to First Token (TTFT):** tempo até o primeiro trecho da resposta ser recebido.
+- **Tempo total de resposta:** tempo até a geração da resposta terminar.
+
+Em uma aplicação com streaming, o usuário pode começar a ler enquanto o restante ainda está sendo gerado. Assim, um TTFT baixo pode tornar a experiência mais ágil mesmo quando o tempo total continua alto.
 
 ### Exemplo
 
-| Modelo | Tempo de resposta |
+Se uma aplicação recebe o primeiro trecho da resposta após 2 segundos e termina a geração após 8 segundos, o TTFT é aproximadamente 2 segundos e o tempo total é aproximadamente 8 segundos. Uma medição completa também deve considerar o tempo de rede e de eventuais ferramentas.
+
+| Modelo | Tempo total ilustrativo |
 |---|---:|
 | Modelo A | 2 segundos |
 | Modelo B | 8 segundos |
 | Modelo C | 15 segundos |
 
-Nesse exemplo, o modelo A apresenta menor latência.
-
-Entretanto, ser mais rápido não significa necessariamente produzir respostas melhores.
-
----
-
-## 4. Qualidade de saída (Output Quality)
-
-É o nível de qualidade do conteúdo produzido pela IA.
-
-Uma saída de qualidade deve ser:
-
-- **Correta:** apresentar informações verdadeiras.
-- **Relevante:** responder ao que foi solicitado.
-- **Coerente:** manter consistência lógica.
-- **Completa:** atender aos requisitos necessários.
-- **Clara:** ser compreensível.
-- **Segura:** evitar soluções com riscos desnecessários.
-
-No desenvolvimento de software, também podemos avaliar:
-
-- Código funcional.
-- Organização e legibilidade.
-- Ausência de erros.
-- Segurança.
-- Manutenibilidade.
-- Atendimento aos requisitos.
+Nesse exemplo, o Modelo A conclui mais rapidamente. Isso não significa, por si só, que ele produza a melhor resposta.
 
 ### Para que serve?
 
-Permite avaliar se o modelo realmente entrega resultados úteis, e não apenas respostas rápidas ou aparentemente convincentes.
+- Avaliar a velocidade percebida pelo usuário.
+- Escolher modelos para experiências interativas ou aplicações em tempo real.
+- Identificar gargalos em chamadas ao modelo, à rede ou a ferramentas.
+- Acompanhar a consistência do serviço em diferentes condições de carga.
+
+### Boas práticas
+
+- Meça separadamente TTFT e tempo total.
+- Compare modelos usando solicitações e condições equivalentes.
+- Avalie percentis, como p50 e p95, além da média: alguns pedidos podem demorar muito mais do que outros.
+- Considere streaming, cache ou respostas mais curtas quando essas opções forem adequadas à aplicação.
+
+## 4. Qualidade de saída (Output Quality)
+
+A qualidade de saída descreve o quanto o resultado é útil e adequado à tarefa. Uma resposta fluente pode parecer convincente sem estar correta; por isso, qualidade não deve ser avaliada apenas pela aparência do texto.
+
+Uma saída de qualidade deve ser:
+
+- **Correta:** compatível com os fatos, os dados e as regras relevantes.
+- **Relevante:** concentrada no que foi solicitado.
+- **Coerente:** consistente ao longo da resposta.
+- **Completa:** atende aos requisitos e às restrições importantes.
+- **Clara:** fácil de entender e usar.
+- **Segura:** evita ações ou orientações que criem riscos desnecessários.
+
+Em desenvolvimento de software, também vale verificar se a solução:
+
+- Funciona nos cenários esperados e trata casos de erro.
+- Atende aos requisitos e se integra ao código existente.
+- É legível, testável e manutenível.
+- Evita vulnerabilidades e exposição indevida de dados.
+- Inclui testes ou evidências adequadas quando necessário.
 
 ### Exemplo
 
-Dois modelos recebem o mesmo pedido para implementar autenticação:
+Dois modelos recebem a solicitação de implementar autenticação:
 
-- **Modelo A:** entrega código rapidamente, mas deixa vulnerabilidades.
-- **Modelo B:** demora um pouco mais, mas implementa validações, tratamento de erros e boas práticas de segurança.
+- **Modelo A** responde rapidamente, mas não valida dados e armazena credenciais de forma insegura.
+- **Modelo B** leva um pouco mais de tempo, contempla validações e tratamento de erros e recomenda práticas de armazenamento seguro.
 
-Nesse cenário, o modelo B apresenta melhor qualidade de saída.
+Para esse objetivo, a resposta do Modelo B é de maior qualidade, desde que também funcione e atenda aos requisitos do projeto.
 
----
+### Como avaliar
+
+- Defina critérios observáveis antes de comparar os modelos.
+- Teste com tarefas representativas do uso real.
+- Verifique fatos, código e referências importantes; não trate a resposta como automaticamente correta.
+- Use testes automatizados, revisão humana ou conjuntos de avaliação quando aplicável.
+- Considere a variabilidade: uma única resposta não representa necessariamente o desempenho consistente do modelo.
 
 ## 5. Comparação geral
 
 | Conceito | O que mede? | Principal preocupação |
 |---|---|---|
-| Janela de contexto | Quantidade de tokens disponíveis | Capacidade |
-| Custo de tokens | Valor do processamento | Economia |
-| Latência | Tempo de resposta | Velocidade |
-| Qualidade de saída | Qualidade do resultado | Eficiência e confiabilidade |
-
----
+| Janela de contexto | Volume de tokens que pode ser considerado em uma interação | Capacidade e seleção de informações |
+| Custo de tokens | Valor do processamento de entrada e saída | Orçamento e eficiência |
+| Latência | Tempo para começar e concluir a resposta | Velocidade e experiência do usuário |
+| Qualidade de saída | Adequação e confiabilidade do resultado | Utilidade e correção |
 
 ## 6. Como esses fatores se relacionam?
 
-Imagine que você está desenvolvendo uma aplicação utilizando OpenCode e DeepSeek.
+Imagine que você está usando OpenCode e um modelo DeepSeek para trabalhar em um projeto. A escolha depende do que você precisa realizar. Um modelo adequado deve oferecer:
 
-Você precisa escolher um modelo para trabalhar no projeto.
+- Contexto suficiente para os arquivos e requisitos relevantes.
+- Custo compatível com o orçamento e o volume de uso.
+- Latência aceitável para o fluxo de trabalho.
+- Qualidade suficiente para produzir resultados confiáveis na tarefa.
 
-O cenário ideal seria encontrar um modelo que tenha:
+Esses fatores podem entrar em conflito:
 
-- Janela de contexto suficientemente grande para seu projeto.
-- Custo acessível para seu orçamento.
-- Baixa latência para não prejudicar o fluxo de trabalho.
-- Alta qualidade de saída para produzir resultados confiáveis.
+- Um modelo mais barato pode exigir mais tentativas ou revisão em tarefas complexas.
+- Um modelo com maior capacidade pode levar mais tempo para responder.
+- Uma janela de contexto maior não garante melhor compreensão.
+- Enviar contexto desnecessário pode elevar o custo e dificultar a identificação do que é importante.
+- Uma resposta mais curta pode reduzir custo e latência, mas deixar de atender a requisitos relevantes.
 
-Mas existe um detalhe: esses fatores podem entrar em conflito.
+### Uma forma prática de escolher
 
-Por exemplo:
+1. **Defina a tarefa:** por exemplo, explicar um conceito, revisar código ou gerar uma implementação.
+2. **Estabeleça critérios:** correção, testes, tempo máximo, custo por tarefa e limites de contexto.
+3. **Compare modelos com os mesmos exemplos:** mantenha prompts e condições tão equivalentes quanto possível.
+4. **Verifique os resultados:** avalie qualidade e segurança, além de preço e velocidade.
+5. **Monitore em uso real:** acompanhe custos, latência e qualidade ao longo do tempo, pois o padrão de uso pode mudar.
 
-- Um modelo mais barato pode ter qualidade inferior em tarefas complexas.
-- Um modelo mais inteligente pode ter latência maior.
-- Uma janela de contexto maior não garante respostas melhores.
-- Enviar contexto desnecessário pode aumentar os custos sem melhorar a resposta.
+**Regra importante:** não escolha um modelo apenas pelo tamanho da janela de contexto ou pelo preço. Avalie seu desempenho nas tarefas reais que você pretende executar.
 
-### Regra importante
-
-Não escolha um modelo apenas pelo tamanho da janela de contexto ou pelo preço. Avalie o desempenho dele nas tarefas reais que você pretende executar.
-
-Esses quatro conceitos são especialmente úteis quando você trabalha com agentes de programação, APIs de LLMs, OpenCode, GitHub Copilot e ferramentas de desenvolvimento apoiado por IA.
-
----
+Esses conceitos são especialmente úteis ao trabalhar com agentes de programação, APIs de LLMs, OpenCode, GitHub Copilot e outras ferramentas de desenvolvimento apoiado por IA.
 
 ## 7. Conclusão
 
 | Conceito | Pergunta que responde |
 |---|---|
-| Janela de contexto | Quanto a IA consegue considerar? |
-| Custo de tokens | Quanto custa utilizar a IA? |
-| Latência | Quanto tempo a IA demora? |
-| Qualidade de saída | Quão bom é o resultado? |
+| Janela de contexto | Quanto conteúdo o modelo pode considerar nesta interação? |
+| Custo de tokens | Quanto custa processar a entrada e gerar a resposta? |
+| Latência | Quanto tempo leva para começar e terminar a resposta? |
+| Qualidade de saída | O resultado é correto, útil e adequado à tarefa? |
 
-**Em resumo:** esses quatro fatores ajudam a avaliar a capacidade, o custo, a velocidade e a eficiência de um modelo de Inteligência Artificial.
+**Em resumo:** contexto, custo, latência e qualidade ajudam a avaliar a capacidade, a economia, a velocidade e a confiabilidade de um modelo de IA. A melhor escolha é aquela que equilibra esses fatores para o caso de uso concreto.
