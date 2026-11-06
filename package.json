@@ -1,0 +1,24 @@
+{
+  "name": "ai-native-software-engineering",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Workspace do curso AI-Native Software Engineering",
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api start:dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter web build",
+    "build:api": "pnpm --filter api build",
+    "preview:web": "pnpm --filter web preview",
+    "start:api": "pnpm --filter api start:prod",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "web": "pnpm --filter web",
+    "api": "pnpm --filter api"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@12.18.0"
+}
