@@ -1,0 +1,44 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.root:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.image {
+  width: auto;
+  height: auto;
+  max-width: 30px;
+  max-height: 30px;
+  object-fit: contain;
+}
+
+.root:hover .icon {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-2px);
+}
+
+.root:hover {
+  color: var(--color-text);
+}

@@ -1,0 +1,28 @@
+.root {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--color-accent);
+}
+
+.top,
+.bottom {
+  position: absolute;
+  opacity: 0.045;
+}
+
+.top {
+  top: -16%;
+  left: -6%;
+  width: min(38vw, 560px);
+  transform: rotate(-6deg);
+}
+
+.bottom {
+  right: -7%;
+  bottom: -22%;
+  width: min(36vw, 540px);
+  transform: rotate(172deg);
+}

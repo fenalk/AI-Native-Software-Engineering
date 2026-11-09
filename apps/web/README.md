@@ -1,16 +1,40 @@
-# React + Vite
+# web
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Aplicação React + Vite do Code Connect.
 
-Currently, two official plugins are available:
+## Estrutura
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Os componentes seguem **atomic design**:
 
-## React Compiler
+```
+src/
+├── components/
+│   ├── atoms/        # Button, Checkbox, Link, TextInput, BrandMark
+│   ├── molecules/    # AuthBanner, AuthHeader, BrandWatermark, Divider, FormField, SocialButton
+│   ├── organisms/    # LoginForm, SocialLoginGroup
+│   └── templates/    # AuthTemplate
+├── pages/
+│   └── LoginPage/
+└── styles/
+    └── global.css    # tokens de cor, tipografia e reset
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Reuso para o cadastro
 
-## Expanding the Oxlint configuration
+- `AuthTemplate` recebe o banner e o conteúdo por props — a página de cadastro usa o
+  mesmo template trocando apenas a imagem e o formulário.
+- `SocialLoginGroup` aceita uma lista de provedores, então pode ser reaproveitado
+  sem alterações.
+- `Divider`, `AuthHeader`, `FormField`, `Button`, `Checkbox` e `Link` são genéricos
+  e servem tanto para login quanto para cadastro.
+- `LoginForm` recebe `onSubmit` e concentra apenas o estado do formulário, deixando
+  a integração com a API para a página.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Scripts
+
+```bash
+pnpm dev       # servidor de desenvolvimento
+pnpm build     # build de produção
+pnpm lint      # oxlint
+pnpm preview   # pré-visualiza o build
+```
