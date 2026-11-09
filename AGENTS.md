@@ -80,5 +80,6 @@ Every new endpoint must follow REST, not RPC:
 ## Session logs
 
 - Every session's full dialogue is recorded in `prompts/sessoes/AAAA-MM-DD-HHMM-<tool>.md` (e.g. `2026-11-09-1228-opencode.md`).
-- Format: header with tool, model and working directory, then each user prompt followed by the assistant reply, in order. Keep the user text verbatim.
+- Format: header with tool, model and timezone — never machine names, usernames, home directories or absolute paths — then each user prompt followed by the assistant reply, in order. Keep the user text verbatim, except absolute paths, which must be redacted.
 - A long attachment can be referenced by path instead of duplicated.
+- Sanitize paths from prompts, commands and outputs: use repository-relative paths or placeholders such as `<repo-root>` and `<tmp>`.
