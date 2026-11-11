@@ -1,85 +1,96 @@
 # AGENTS.md
 
-## Repo shape
+## Estrutura do repositório
 
-- pnpm workspace (`pnpm-workspace.yaml` → `apps/*`), single git repo at the root. Course sandbox for Alura's AI-Native Software Engineering; no business domain implemented yet.
-- `apps/web` — React 19 + Vite 8, **plain JavaScript** (no TypeScript).
-- `apps/api` — NestJS 12, TypeScript in **ESM** mode, tests on Vitest.
-- `Setup/` — course study material (AI model concepts), not application code. Don't import or "fix" it.
-- There is **no integration yet**: web does not call the API, and the API has no CORS or Vite proxy configured.
+- Workspace pnpm (`pnpm-workspace.yaml` → `apps/*`), um único repositório git na raiz. Sandbox do curso de AI-Native Software Engineering da Alura; nenhum domínio de negócio implementado ainda.
+- `apps/web` — React 19 + Vite 8, **JavaScript puro** (sem TypeScript).
+- `apps/api` — NestJS 12, TypeScript em modo **ESM**, testes com Vitest.
+- `Setup/` — material de estudo do curso (conceitos de modelos de IA), não é código da aplicação. Não importe nem "corrija".
+- Ainda **não há integração**: o web não chama a API, e a API não tem CORS nem proxy do Vite configurados.
 
-## Commands
+## Comandos
 
-Run from the repo root. `pnpm web <cmd>` and `pnpm api <cmd>` forward any command to the given app.
+Execute a partir da raiz do repositório. `pnpm web <cmd>` e `pnpm api <cmd>` repassam qualquer comando para o app indicado.
 
-| Goal | Command |
+| Objetivo | Comando |
 |---|---|
-| Both dev servers | `pnpm dev` |
-| Web only (5173) / API only (3000) | `pnpm dev:web` / `pnpm dev:api` |
-| One API unit test | `pnpm api test src/app.controller.spec.ts` |
-| One web component test (after setup) | `pnpm web test src/components/atoms/Button.test.jsx` |
-| Unit tests in watch mode | `pnpm api test:watch` |
-| API e2e tests | `pnpm api test:e2e` |
-| Lint all / build all | `pnpm lint` / `pnpm build` |
+| Os dois servidores de desenvolvimento | `pnpm dev` |
+| Só web (5173) / só API (3000) | `pnpm dev:web` / `pnpm dev:api` |
+| Um teste unitário da API | `pnpm api test src/app.controller.spec.ts` |
+| Um teste de componente web (após configuração) | `pnpm web test src/components/atoms/Button.test.jsx` |
+| Testes unitários em modo watch | `pnpm api test:watch` |
+| Testes e2e da API | `pnpm api test:e2e` |
+| Lint de tudo / build de tudo | `pnpm lint` / `pnpm build` |
 
-- Root `pnpm test` runs `vitest run` and matches only `**/*.spec.ts`; e2e (`test/**/*.e2e-spec.ts`) needs `pnpm api test:e2e`.
-- API port honors `PORT` (default 3000).
+- O `pnpm test` da raiz roda `vitest run` e considera apenas `**/*.spec.ts`; os e2e (`test/**/*.e2e-spec.ts`) precisam de `pnpm api test:e2e`.
+- A porta da API respeita `PORT` (padrão 3000).
 
-## Windows: pnpm.exe is blocked on this machine
+## Windows: pnpm.exe está bloqueado nesta máquina
 
-Device Guard / Application Control blocks `pnpm.exe`, so every `pnpm` invocation fails with *"política de Controle de Aplicativo bloqueou este arquivo"* (exit 4551). The pnpm copy at `%LOCALAPPDATA%\pnpm\.tools` is blocked too.
+O Device Guard / Controle de Aplicativo bloqueia o `pnpm.exe`, então toda chamada de `pnpm` falha com *"política de Controle de Aplicativo bloqueou este arquivo"* (exit 4551). A cópia do pnpm em `%LOCALAPPDATA%\pnpm\.tools` também é bloqueada.
 
-Working alternatives (verified). Run each from its own app directory — both Vite and Nest resolve their config from the current directory:
+Alternativas que funcionam (verificadas). Execute cada uma dentro do diretório do próprio app — tanto o Vite quanto o Nest resolvem a configuração a partir do diretório atual:
 
 ```powershell
 cd apps/web; node node_modules/vite/bin/vite.js
 cd apps/api; node node_modules/@nestjs/cli/bin/nest.js start --watch
 ```
 
-To run package scripts, use a JS build of pnpm: `npm pack pnpm@10.18.3`, extract, then `node <dir>/package/bin/pnpm.cjs <script>`. Root scripts that call `pnpm` internally (`dev:api`, `dev:web`, `test`, `lint`) still fail under that workaround — invoke the inner command instead, e.g. `node <dir>/package/bin/pnpm.cjs --filter api start:dev`. Report the block instead of editing scripts or reinstalling pnpm unless asked.
+Para rodar scripts de pacote, use uma build em JS do pnpm: `npm pack pnpm@10.18.3`, extraia e depois `node <dir>/package/bin/pnpm.cjs <script>`. Scripts da raiz que chamam `pnpm` internamente (`dev:api`, `dev:web`, `test`, `lint`) ainda falham com essa alternativa — chame o comando interno em vez disso, por exemplo `node <dir>/package/bin/pnpm.cjs --filter api start:dev`. Relate o bloqueio em vez de editar scripts ou reinstalar o pnpm, a menos que seja pedido.
 
-## API conventions (`apps/api`)
+## Convenções da API (`apps/api`)
 
-- ESM: relative imports must end in `.js` (e.g. `./app.module.js`) even in `.ts` files; no `__dirname` (use `import.meta.dirname`).
-- Vitest, not Jest: globals are enabled and `vi.fn()` replaces jest mocks. `vitest.config.ts` handles `*.spec.ts` (colocated with source); `vitest.config.e2e.ts` handles `test/*.e2e-spec.ts` via supertest.
-- `nest build` emits to `dist/` with `deleteOutDir` and excludes specs; `start:prod` = `node dist/main`.
-- Read `apps/api/AGENTS.md` **before adding libraries**. Nest 12 is newer than most training data (docs index: `https://docs.nestjs.com/llms.txt`), prefer first-party packages, and validation uses Standard Schema (`StandardSchemaValidationPipe`) rather than class-validator.
-- NestJS Observe telemetry is not wired (`ObserveModule` is absent), so no production traces/logs are available.
+- ESM: imports relativos devem terminar em `.js` (ex.: `./app.module.js`) mesmo em arquivos `.ts`; não use `__dirname` (use `import.meta.dirname`).
+- Vitest, não Jest: os globals ficam habilitados e `vi.fn()` substitui os mocks do jest. `vitest.config.ts` cobre `*.spec.ts` (colocados junto ao código-fonte); `vitest.config.e2e.ts` cobre `test/*.e2e-spec.ts` via supertest.
+- `nest build` gera em `dist/` com `deleteOutDir` e exclui os specs; `start:prod` = `node dist/main`.
+- Leia `apps/api/AGENTS.md` **antes de adicionar bibliotecas**. O Nest 12 é mais novo que a maior parte dos dados de treinamento (índice da documentação: `https://docs.nestjs.com/llms.txt`), prefira pacotes de primeira linha, e a validação usa Standard Schema (`StandardSchemaValidationPipe`) em vez de class-validator.
+- A telemetria do NestJS Observe não está ligada (o `ObserveModule` está ausente), então não há traces/logs de produção disponíveis.
 
-### REST contract
+### Contrato REST
 
-Every new endpoint must follow REST, not RPC:
+Todo endpoint novo deve seguir REST, não RPC:
 
-- Resource-oriented, plural-noun URLs (`/users`, `/users/:id`); no verbs in paths (`/getUsers`, `/users/create`). Nest at most one sub-resource (`/users/:id/orders`).
-- Map CRUD to methods and status codes: `GET` 200 (404 when missing), `POST` 201 + `Location` header, `PUT` full replace 200/204, `PATCH` partial update 200/204, `DELETE` 204. Never return 200 with an error body.
-- Validate at the boundary (DTOs + Standard Schema) and use one error shape for all non-2xx responses (e.g. RFC 9457 `application/problem+json`).
-- DTOs are the public contract: never expose persistence entities directly.
-- Pagination, filtering and sorting go through query params (`?page=&limit=&sort=`), not the body or path segments.
-- Keep handlers stateless; `GET`, `PUT` and `DELETE` must be idempotent.
+- URLs orientadas a recurso, com substantivos no plural (`/users`, `/users/:id`); sem verbos nos caminhos (`/getUsers`, `/users/create`). No máximo um sub-recurso aninhado (`/users/:id/orders`).
+- Mapeie o CRUD para métodos e status codes: `GET` 200 (404 quando não existir), `POST` 201 + cabeçalho `Location`, `PUT` substituição total 200/204, `PATCH` atualização parcial 200/204, `DELETE` 204. Nunca retorne 200 com corpo de erro.
+- Valide na borda (DTOs + Standard Schema) e use um formato único de erro para todas as respostas fora de 2xx (ex.: RFC 9457 `application/problem+json`).
+- Os DTOs são o contrato público: nunca exponha entidades de persistência diretamente.
+- Paginação, filtragem e ordenação vão por query params (`?page=&limit=&sort=`), não no corpo nem em segmentos do caminho.
+- Mantenha os handlers sem estado; `GET`, `PUT` e `DELETE` devem ser idempotentes.
 
-## Web conventions (`apps/web`)
+## Convenções do web (`apps/web`)
 
-- JavaScript + JSX only; Vite uses `@vitejs/plugin-react` (Oxc). Don't introduce TypeScript without being asked.
-- **Atomic Design** lives in `src/components/{atoms,molecules,organisms,templates}` plus `src/pages`. Dependencies point one way only — atoms → molecules → organisms → templates → pages; never import upward.
-  - atoms: presentational and domain-agnostic (no data fetching); molecules compose atoms; organisms own domain behavior; templates define layout/slots; pages wire data and compose templates.
-- **Tailwind CSS** is the styling system (not installed yet — add it with the Vite plugin when the first UI task starts). Style with utility classes in JSX; no CSS-in-JS, per-component CSS files, or ad-hoc `style` props. Global CSS is only for reset/tokens.
-- Every component must ship with a test covering its essential usage (renders with key props + main interaction), colocated as `Component.test.jsx`. Assert behavior, not markup snapshots.
-- No web test runner exists yet: when the first component is created, add Vitest + `@testing-library/react` (jsdom) and a `test` script so root `pnpm test` also covers web.
-- oxlint only (`react/rules-of-hooks` is an error).
+- Apenas JavaScript + JSX; o Vite usa `@vitejs/plugin-react` (Oxc). Não introduza TypeScript sem que seja pedido.
+- O **Atomic Design** fica em `src/components/{atoms,molecules,organisms,templates}` mais `src/pages`. As dependências apontam em uma única direção — atoms → molecules → organisms → templates → pages; nunca importe na direção contrária.
+  - atoms: apresentacionais e agnósticos de domínio (sem busca de dados); molecules compõem atoms; organisms são donos do comportamento de domínio; templates definem layout/slots; pages ligam os dados e compõem templates.
+- **Tailwind CSS** é o sistema de estilização (ainda não instalado — adicione com o plugin do Vite quando começar a primeira tarefa de UI). Estilize com classes utilitárias no JSX; sem CSS-in-JS, arquivos CSS por componente ou props `style` avulsas. CSS global serve apenas para reset/tokens.
+- Todo componente deve vir com um teste cobrindo seu uso essencial (renderiza com as props principais + interação principal), colocado como `Component.test.jsx`. Verifique comportamento, não snapshots de marcação.
+- Ainda não existe runner de testes no web: quando o primeiro componente for criado, adicione Vitest + `@testing-library/react` (jsdom) e um script `test` para que o `pnpm test` da raiz também cubra o web.
+- Apenas oxlint (`react/rules-of-hooks` é erro).
 
-## Git conventions
+## Convenções do Git
 
-- One repository at the root; never run `git init` inside `apps/*`.
-- Use **Conventional Commits** for both apps: `<type>(<scope>): <subject>`, e.g. `feat(web): add button atom`, `fix(api): return 404 when user is missing`.
-  - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
-  - Scope is `web` or `api`; omit it for repo-wide changes. Subject is imperative, lowercase, in English (matches existing history), with no trailing period.
-  - Use the body to explain *why* when it is not obvious; breaking changes go in a `BREAKING CHANGE:` footer.
-- One logical change per commit; don't mix web and api changes.
-- No commit hooks or lint enforcement exist yet — follow the convention manually.
+- Um único repositório na raiz; nunca rode `git init` dentro de `apps/*`.
+- Use **Conventional Commits** nos dois apps: `<type>(<scope>): <subject>`, ex.: `feat(web): add button atom`, `fix(api): return 404 when user is missing`.
+  - Tipos: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+  - O escopo é `web` ou `api`; omita-o para mudanças no repositório como um todo. O assunto vai no imperativo, em minúsculas, em inglês (acompanha o histórico existente), sem ponto final.
+  - Use o corpo para explicar o *porquê* quando não for óbvio; mudanças que quebram compatibilidade vão no rodapé `BREAKING CHANGE:`.
+- Uma mudança lógica por commit; não misture mudanças de web e api.
+- Ainda não existem hooks de commit nem verificação de lint — siga a convenção manualmente.
 
-## Session logs
+### Critérios de segurança de commit
 
-- Every session's full dialogue is recorded in `prompts/sessoes/AAAA-MM-DD-HHMM-<tool>.md` (e.g. `2026-11-09-1228-opencode.md`).
-- Format: header with tool, model and timezone — never machine names, usernames, home directories or absolute paths — then each user prompt followed by the assistant reply, in order. Keep the user text verbatim, except absolute paths, which must be redacted.
-- A long attachment can be referenced by path instead of duplicated.
-- Sanitize paths from prompts, commands and outputs: use repository-relative paths or placeholders such as `<repo-root>` and `<tmp>`.
+Verifique cada commit com base nestes critérios antes de enviar:
+
+1. Nunca publicar caminhos absolutos do computador (ex.: `/home/<user>/...`, `C:\Users\<user>\...`).
+2. Substituir caminhos pessoais por caminhos relativos ou placeholders (`apps/web/src`, `<repo-root>`).
+3. Nunca versionar arquivos `.env`, `.pem`, `.key` ou credenciais.
+4. Utilizar `.gitignore` para excluir arquivos sensíveis.
+5. Verificar o histórico do Git, pois apagar um arquivo do repositório não o remove necessariamente do histórico.
+6. Manter repositórios privados quando houver informações internas.
+
+## Logs de sessão
+
+- O diálogo completo de cada sessão é registrado em `prompts/sessoes/AAAA-MM-DD-HHMM-<tool>.md` (ex.: `2026-11-09-1228-opencode.md`).
+- Formato: cabeçalho com ferramenta, modelo e fuso horário — nunca nomes de máquina, usuários, diretórios pessoais ou caminhos absolutos — depois cada prompt do usuário seguido da resposta do assistente, em ordem. Mantenha o texto do usuário literal, exceto caminhos absolutos, que devem ser ocultados.
+- Um anexo longo pode ser referenciado pelo caminho em vez de duplicado.
+- Sanitize caminhos vindos de prompts, comandos e saídas: use caminhos relativos ao repositório ou placeholders como `<repo-root>` e `<tmp>`.
