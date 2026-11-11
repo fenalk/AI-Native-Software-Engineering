@@ -64,7 +64,7 @@ pnpm api test
 
 ## Estatísticas do código
 
-Contagem de linhas do código-fonte com [cloc](https://github.com/AlDanial/cloc) 1.98.
+Contagem de linhas do código-fonte com [cloc](https://github.com/AlDanial/cloc) 1.86.
 Entram apenas os arquivos de código dos apps: `apps/web/src`, `apps/web/index.html`,
 `apps/web/vite.config.js`, `apps/api/src`, `apps/api/test` e os `vitest.config*.ts`.
 Ficam de fora dependências (`node_modules`), lockfiles, builds (`dist`), dados
@@ -84,7 +84,7 @@ Por app: web com 1278 linhas de código (48 arquivos) e API com 93 (8 arquivos).
 Para reproduzir:
 
 ```bash
-cloc apps/web/src apps/web/index.html apps/web/vite.config.js \
+npx cloc@2.6.0 apps/web/src apps/web/index.html apps/web/vite.config.js \
      apps/api/src apps/api/test apps/api/vitest.config.ts apps/api/vitest.config.e2e.ts
 ```
 
