@@ -61,3 +61,12 @@ pnpm api test
 
 - Web (Vite): <http://localhost:5173>
 - API (NestJS): <http://localhost:3000>
+
+## Servidores MCP
+
+Os servidores MCP configurados para o OpenCode ficam em `opencode.json`, na raiz do repositório. Esse arquivo é ignorado pelo Git (pode conter credenciais), então cada pessoa mantém a sua própria cópia.
+
+| Servidor | Tipo | Endpoint | Autenticação |
+|---|---|---|---|
+| `github` | remoto | `https://api.githubcopilot.com/mcp/` | Token na variável de ambiente `GH` |
+| `figma` | remoto | `https://mcp.figma.com/mcp` | OAuth |
