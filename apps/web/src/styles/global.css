@@ -3,23 +3,23 @@
 
   --font-sans: 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif;
 
-  --color-bg: #050a09;
-  --color-surface: #1c1f1e;
+  --color-bg: #00090e;
+  --color-surface: #171d1f;
   --color-surface-soft: #242826;
-  --color-text: #f4f6f5;
-  --color-text-muted: #b3bab7;
-  --color-text-subtle: #858d89;
-  --color-accent: #5ee05f;
-  --color-accent-hover: #74f075;
-  --color-accent-contrast: #07130a;
-  --color-border: #343a37;
-  --color-input: #8d908e;
-  --color-input-text: #161917;
-  --color-input-placeholder: #3f4441;
+  --color-text: #e1e1e1;
+  --color-text-muted: #888888;
+  --color-text-subtle: #888888;
+  --color-accent: #81fe88;
+  --color-accent-hover: #a1ffa6;
+  --color-accent-contrast: #132e35;
+  --color-border: #888888;
+  --color-input: #888888;
+  --color-input-text: #171d1f;
+  --color-input-placeholder: #171d1f;
 
-  --radius-xs: 6px;
+  --radius-xs: 4px;
   --radius-sm: 8px;
-  --radius-lg: 24px;
+  --radius-lg: 32px;
 
   --shadow-card: 0 30px 80px rgba(0, 0, 0, 0.45);
 
@@ -42,19 +42,10 @@ html {
 body {
   margin: 0;
   min-height: 100svh;
-  background:
-    radial-gradient(
-      60% 55% at 72% 18%,
-      rgba(94, 224, 95, 0.06),
-      transparent 70%
-    ),
-    radial-gradient(
-      45% 40% at 18% 85%,
-      rgba(94, 224, 95, 0.035),
-      transparent 70%
-    ),
-    var(--color-bg);
+  background: var(--color-bg);
   color: var(--color-text);
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 button,
@@ -76,6 +67,6 @@ img {
 }
 
 ::selection {
-  background: rgba(94, 224, 95, 0.3);
+  background: rgba(129, 254, 136, 0.3);
   color: #fff;
 }

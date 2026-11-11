@@ -1,45 +1,15 @@
 import { useState } from 'react'
+import { ArrowForwardIcon } from '../../atoms/ArrowForwardIcon/ArrowForwardIcon.jsx'
 import { Button } from '../../atoms/Button/Button.jsx'
 import { Checkbox } from '../../atoms/Checkbox/Checkbox.jsx'
 import { Link } from '../../atoms/Link/Link.jsx'
+import { LoginIcon } from '../../atoms/LoginIcon/LoginIcon.jsx'
+import { AuthFooter } from '../../molecules/AuthFooter/AuthFooter.jsx'
 import { AuthHeader } from '../../molecules/AuthHeader/AuthHeader.jsx'
 import { Divider } from '../../molecules/Divider/Divider.jsx'
 import { FormField } from '../../molecules/FormField/FormField.jsx'
 import { SocialLoginGroup } from '../SocialLoginGroup/SocialLoginGroup.jsx'
 import styles from './LoginForm.module.css'
-
-function ArrowRightIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-      <path
-        d="M3.5 9h11m0 0-4.2-4.2M14.5 9l-4.2 4.2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function PencilIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d="M11.1 2.4a1.7 1.7 0 0 1 2.5 2.4l-6.9 7-3 .6.6-3 6.8-7Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M2 14h12"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
 
 export function LoginForm({ onSubmit }) {
   const [identifier, setIdentifier] = useState('')
@@ -53,10 +23,7 @@ export function LoginForm({ onSubmit }) {
 
   return (
     <div className={styles.root}>
-      <AuthHeader
-        title="Login"
-        description="Boas-vindas! Faça seu login."
-      />
+      <AuthHeader title="Login" description="Boas-vindas! Faça seu login." />
 
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.fields}>
@@ -66,7 +33,7 @@ export function LoginForm({ onSubmit }) {
             name="identifier"
             value={identifier}
             onChange={(event) => setIdentifier(event.target.value)}
-            placeholder="usuário123"
+            placeholder="usuario123"
             autoComplete="username"
             required
           />
@@ -96,7 +63,7 @@ export function LoginForm({ onSubmit }) {
           </Link>
         </div>
 
-        <Button type="submit" fullWidth iconRight={<ArrowRightIcon />}>
+        <Button type="submit" fullWidth iconRight={<ArrowForwardIcon />}>
           Login
         </Button>
       </form>
@@ -109,13 +76,14 @@ export function LoginForm({ onSubmit }) {
         <SocialLoginGroup />
       </div>
 
-      <p className={styles.signup}>
-        <span>Ainda não tem conta?</span>
-        <Link href="#cadastro" variant="accent">
-          Crie seu cadastro!
-          <PencilIcon />
-        </Link>
-      </p>
+      <div className={styles.footer}>
+        <AuthFooter
+          question="Ainda não tem conta?"
+          linkLabel="Crie seu cadastro!"
+          linkHref="/cadastro"
+          icon={<LoginIcon />}
+        />
+      </div>
     </div>
   )
 }

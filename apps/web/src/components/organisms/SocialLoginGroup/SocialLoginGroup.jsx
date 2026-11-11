@@ -6,13 +6,15 @@ const DEFAULT_PROVIDERS = [
     id: 'github',
     label: 'Github',
     icon: '/Github.png',
-    href: '#login-github',
+    iconSize: 'lg',
+    href: '#social-github',
   },
   {
     id: 'google',
     label: 'Gmail',
     icon: '/Google.png',
-    href: '#login-google',
+    iconSize: 'md',
+    href: '#social-google',
   },
 ]
 
@@ -24,6 +26,7 @@ export function SocialLoginGroup({ providers = DEFAULT_PROVIDERS }) {
           <SocialButton
             href={provider.href}
             icon={provider.icon}
+            iconSize={provider.iconSize}
             label={provider.label}
           />
         </li>

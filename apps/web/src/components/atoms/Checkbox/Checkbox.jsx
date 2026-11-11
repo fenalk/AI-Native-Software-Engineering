@@ -2,13 +2,12 @@ import styles from './Checkbox.module.css'
 
 function CheckIcon() {
   return (
-    <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <path
-        d="M2.5 6.2 5 8.7l4.5-5.4"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M13.6467 3.09725C13.995 3.28748 14.1043 3.6933 13.8909 4.00367L8.2081 12.2655C7.67814 13.036 6.52043 13.2352 5.70659 12.696L2.29837 10.4377C1.97054 10.2205 1.90239 9.80763 2.14617 9.51551C2.38994 9.22339 2.85332 9.16267 3.18115 9.37989L6.58938 11.6381C6.70564 11.7152 6.87103 11.6867 6.94674 11.5766L12.6295 3.31479C12.843 3.00442 13.2984 2.90702 13.6467 3.09725Z"
+        fill="currentColor"
       />
     </svg>
   )

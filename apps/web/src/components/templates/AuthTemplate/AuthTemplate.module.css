@@ -9,15 +9,18 @@
 }
 
 .card {
+  --banner-radius: 26px;
+
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 430px) minmax(0, 340px);
-  justify-content: start;
-  gap: 56px;
-  width: min(100%, 1000px);
-  padding: 48px 56px;
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  grid-template-columns: minmax(0, 407px) minmax(0, 346px);
+  align-items: center;
+  gap: 64px;
+  width: max-content;
+  max-width: 100%;
+  padding: 56px 78px;
+  border: 1px solid #000;
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
@@ -42,12 +45,8 @@
   .card {
     grid-template-columns: minmax(0, 1fr);
     gap: 32px;
-    width: min(100%, 520px);
+    width: min(100%, 600px);
     padding: 32px;
-  }
-
-  .banner {
-    display: none;
   }
 }
 
@@ -57,7 +56,8 @@
   }
 
   .card {
-    padding: 28px 22px;
+    gap: 24px;
+    padding: 20px;
     border-radius: 18px;
   }
 }
