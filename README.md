@@ -62,31 +62,31 @@ pnpm api test
 - Web (Vite): <http://localhost:5173>
 - API (NestJS): <http://localhost:3000>
 
-## Estatísticas do código
+## Contagem de código (cloc)
 
-Contagem de linhas do código-fonte com [cloc](https://github.com/AlDanial/cloc) 1.98.
-Entram apenas os arquivos de código dos apps: `apps/web/src`, `apps/web/index.html`,
-`apps/web/vite.config.js`, `apps/api/src`, `apps/api/test` e os `vitest.config*.ts`.
-Ficam de fora dependências (`node_modules`), lockfiles, builds (`dist`), dados
-(assets e `Setup/`) e toda a documentação (`*.md`).
+Contagem feita com [cloc](https://github.com/AlDanial/cloc) 1.86 sobre o código-fonte
+versionado de `apps/web/src`, `apps/api/src` e `apps/api/test`. **Não entram na
+contagem** `node_modules`, lockfiles (`pnpm-lock.yaml`), build (`dist/`) e dados/arquivos
+auxiliares (imagens em `public/`, `.gitignore`, configurações de ferramentas).
+
+```bash
+npx cloc@2.6.0 apps/web/src apps/api/src apps/api/test --exclude-dir=node_modules,dist
+```
 
 | Linguagem | Arquivos | Em branco | Comentários | Código |
 |---|---:|---:|---:|---:|
 | JSX | 29 | 80 | 2 | 742 |
 | CSS | 16 | 77 | 5 | 495 |
-| TypeScript | 8 | 16 | 2 | 93 |
-| HTML | 1 | 0 | 0 | 24 |
-| JavaScript | 2 | 2 | 1 | 17 |
-| **Total** | **56** | **175** | **10** | **1371** |
+| TypeScript | 6 | 14 | 0 | 75 |
+| JavaScript | 1 | 1 | 0 | 6 |
+| **Total** | **52** | **172** | **7** | **1.318** |
 
-Por app: web com 1278 linhas de código (48 arquivos) e API com 93 (8 arquivos).
+Separando produção de testes:
 
-Para reproduzir:
-
-```bash
-cloc apps/web/src apps/web/index.html apps/web/vite.config.js \
-     apps/api/src apps/api/test apps/api/vitest.config.ts apps/api/vitest.config.e2e.ts
-```
+| Partição | Arquivos | Em branco | Comentários | Código |
+|---|---:|---:|---:|---:|
+| Produção (sem testes) | 43 | 130 | 7 | 1.107 |
+| Testes (`*.test.jsx`, `*.spec.ts`, `*.e2e-spec.ts`, `src/test/setup.js`) | 9 | 42 | 0 | 211 |
 
 ## Servidores MCP
 
