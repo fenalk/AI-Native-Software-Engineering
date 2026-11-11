@@ -62,6 +62,32 @@ pnpm api test
 - Web (Vite): <http://localhost:5173>
 - API (NestJS): <http://localhost:3000>
 
+## Estatísticas do código
+
+Contagem de linhas do código-fonte com [cloc](https://github.com/AlDanial/cloc) 1.98.
+Entram apenas os arquivos de código dos apps: `apps/web/src`, `apps/web/index.html`,
+`apps/web/vite.config.js`, `apps/api/src`, `apps/api/test` e os `vitest.config*.ts`.
+Ficam de fora dependências (`node_modules`), lockfiles, builds (`dist`), dados
+(assets e `Setup/`) e toda a documentação (`*.md`).
+
+| Linguagem | Arquivos | Em branco | Comentários | Código |
+|---|---:|---:|---:|---:|
+| JSX | 29 | 80 | 2 | 742 |
+| CSS | 16 | 77 | 5 | 495 |
+| TypeScript | 8 | 16 | 2 | 93 |
+| HTML | 1 | 0 | 0 | 24 |
+| JavaScript | 2 | 2 | 1 | 17 |
+| **Total** | **56** | **175** | **10** | **1371** |
+
+Por app: web com 1278 linhas de código (48 arquivos) e API com 93 (8 arquivos).
+
+Para reproduzir:
+
+```bash
+cloc apps/web/src apps/web/index.html apps/web/vite.config.js \
+     apps/api/src apps/api/test apps/api/vitest.config.ts apps/api/vitest.config.e2e.ts
+```
+
 ## Servidores MCP
 
 Os servidores MCP configurados para o OpenCode ficam em `opencode.json`, na raiz do repositório. Esse arquivo é ignorado pelo Git (pode conter credenciais), então cada pessoa mantém a sua própria cópia.
