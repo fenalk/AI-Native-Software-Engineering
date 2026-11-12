@@ -62,10 +62,54 @@ Todo endpoint novo deve seguir REST, não RPC:
 - Apenas JavaScript + JSX; o Vite usa `@vitejs/plugin-react` (Oxc). Não introduza TypeScript sem que seja pedido.
 - O **Atomic Design** fica em `src/components/{atoms,molecules,organisms,templates}` mais `src/pages`. As dependências apontam em uma única direção — atoms → molecules → organisms → templates → pages; nunca importe na direção contrária.
   - atoms: apresentacionais e agnósticos de domínio (sem busca de dados); molecules compõem atoms; organisms são donos do comportamento de domínio; templates definem layout/slots; pages ligam os dados e compõem templates.
-- **Tailwind CSS** é o sistema de estilização (ainda não instalado — adicione com o plugin do Vite quando começar a primeira tarefa de UI). Estilize com classes utilitárias no JSX; sem CSS-in-JS, arquivos CSS por componente ou props `style` avulsas. CSS global serve apenas para reset/tokens.
+- **Tailwind CSS v4** é o sistema de estilização (`@tailwindcss/vite`, tema em `src/styles/global.css`). Estilize com classes utilitárias no JSX; sem CSS-in-JS, arquivos CSS por componente ou props `style` avulsas. O CSS global serve apenas para importar o Tailwind, declarar o tema e o reset base. Cores e tamanhos seguem as guidelines abaixo.
 - Todo componente deve vir com um teste cobrindo seu uso essencial (renderiza com as props principais + interação principal), colocado como `Component.test.jsx`. Verifique comportamento, não snapshots de marcação.
 - Ainda não existe runner de testes no web: quando o primeiro componente for criado, adicione Vitest + `@testing-library/react` (jsdom) e um script `test` para que o `pnpm test` da raiz também cubra o web.
 - Apenas oxlint (`react/rules-of-hooks` é erro).
+
+### Cores
+
+A paleta do projeto é a única fonte de cores do web e fica no `@theme` de `src/styles/global.css`:
+
+| Token | Valor | Uso |
+| --- | --- | --- |
+| `canvas` | `#00090e` | fundo da página |
+| `surface` | `#171d1f` | card |
+| `surface-soft` | `#242826` | superfície secundária |
+| `ink` | `#e1e1e1` | texto principal |
+| `muted` | `#888888` | texto secundário |
+| `accent` | `#81fe88` | ação primária |
+| `accent-hover` | `#a1ffa6` | hover da ação primária |
+| `accent-ink` | `#132e35` | texto sobre o `accent` |
+| `accent-soft` | `rgb(129 254 136 / 30%)` | seleção de texto |
+| `field` | `#888888` | fundo dos inputs |
+| `field-hover` | `#9a9d9a` | hover dos inputs |
+| `field-ink` | `#171d1f` | texto e placeholder dos inputs |
+| `banner` | `#08120e` | fundo do banner |
+| `edge` | `#000000` | borda do card |
+| `focus` | `#ffffff` | outline de foco |
+
+- Use os utilitários derivados do tema (`bg-canvas`, `bg-surface`, `text-ink`, `text-accent`, `border-edge`, `outline-focus` etc.).
+- Nunca escreva hexadecimal ou `rgb()`/`rgba()` diretamente nas classes (`bg-[#171d1f]`, `text-[#ffffff]`) nem em CSS de componente.
+- Se precisar de uma cor nova, adicione um token semântico `--color-*` ao `@theme` e use o utilitário correspondente; não crie uma paleta paralela.
+- Sombras também são tokens: `--shadow-card` e `--shadow-accent` geram `shadow-card` e `shadow-accent`. Evite `shadow-[...]` com cor literal.
+
+### Tamanhos de fonte
+
+Use somente a escala padrão do Tailwind (root de 16 px) e escolha o token mais próximo do valor de design. Não crie `--text-*` no tema nem use tamanhos arbitrários como `text-[15px]`.
+
+| Token | px | Uso no projeto |
+| --- | --- | --- |
+| `text-xs` | 12 | labels dos provedores sociais (12,5 px no Figma) |
+| `text-sm` | 14 | inputs, checkbox, links sutis e divisor (15 px no Figma) |
+| `text-base` | 16 | texto base do `body` |
+| `text-lg` | 18 | labels, botões e links de destaque |
+| `text-xl` | 20 | descrição dos cabeçalhos (22 px no Figma) |
+| `text-3xl` | 30 | títulos das páginas (31 px no Figma) |
+
+- Quando o valor estiver entre dois tokens (ex.: 15 px e 22 px), use o token menor para preservar a hierarquia compacta.
+- Quando o layout pedir `line-height` 1.5, combine o tamanho com `leading-normal`.
+- Medidas de layout (alturas, `padding`, raios, `aspect-ratio` e breakpoints) podem usar utilitários do Tailwind ou valores arbitrários quando não houver token próximo; a regra de "só tokens" vale para cor e tamanho de fonte.
 
 ## Convenções do Git
 
