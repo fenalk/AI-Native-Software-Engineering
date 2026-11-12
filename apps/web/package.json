@@ -9,6 +9,9 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:a11y": "vitest run a11y && playwright test",
+    "test:a11y:dom": "vitest run a11y",
+    "test:a11y:e2e": "playwright test",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -16,6 +19,9 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.0",
+    "@tailwindcss/vite": "^4.3.5",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
@@ -23,8 +29,10 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "axe-core": "^4.14.0",
     "jsdom": "^28.1.0",
     "oxlint": "^1.90.0",
+    "tailwindcss": "^4.3.5",
     "vite": "^8.3.6",
     "vitest": "^4.1.12"
   }
