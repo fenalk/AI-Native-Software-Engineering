@@ -1,5 +1,4 @@
 import { TextInput } from '../../atoms/TextInput/TextInput.jsx'
-import styles from './FormField.module.css'
 
 export function FormField({
   autoComplete,
@@ -13,8 +12,11 @@ export function FormField({
   value,
 }) {
   return (
-    <div className={styles.root}>
-      <label className={styles.label} htmlFor={id}>
+    <div className="flex flex-col gap-2">
+      <label
+        className="text-lg font-normal leading-normal text-ink"
+        htmlFor={id}
+      >
         {label}
       </label>
       <TextInput

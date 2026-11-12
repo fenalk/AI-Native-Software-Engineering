@@ -1,5 +1,3 @@
-import styles from './Checkbox.module.css'
-
 function CheckIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -22,19 +20,29 @@ export function Checkbox({
   onChange,
 }) {
   return (
-    <label className={[styles.root, className].filter(Boolean).join(' ')}>
+    <label
+      className={[
+        'group inline-flex min-h-6 cursor-pointer select-none items-center gap-2 text-sm leading-normal text-muted',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <input
         id={id}
         name={name}
         type="checkbox"
-        className={styles.input}
+        className="peer sr-only"
         checked={checked}
         onChange={onChange}
       />
-      <span className={styles.box} aria-hidden="true">
+      <span
+        className="grid size-6 shrink-0 place-items-center rounded border-2 border-field text-accent transition-colors [&_svg]:opacity-0 [&_svg]:transition-opacity peer-checked:[&_svg]:opacity-100 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent"
+        aria-hidden="true"
+      >
         <CheckIcon />
       </span>
-      <span className={styles.label}>{label}</span>
+      <span className="group-hover:text-ink">{label}</span>
     </label>
   )
 }

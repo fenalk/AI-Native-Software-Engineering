@@ -1,10 +1,9 @@
 import { Link } from '../../atoms/Link/Link.jsx'
-import styles from './AuthFooter.module.css'
 
 export function AuthFooter({ question, linkLabel, linkHref, icon }) {
   return (
-    <p className={styles.root}>
-      <span className={styles.question}>{question}</span>
+    <p className="m-0 flex flex-wrap items-center gap-2 text-lg leading-normal max-[520px]:flex-col max-[520px]:items-start">
+      <span className="text-ink">{question}</span>
       <Link href={linkHref} variant="accent">
         {linkLabel}
         {icon}

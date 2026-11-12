@@ -1,5 +1,4 @@
 import { SocialButton } from '../../molecules/SocialButton/SocialButton.jsx'
-import styles from './SocialLoginGroup.module.css'
 
 const DEFAULT_PROVIDERS = [
   {
@@ -20,7 +19,7 @@ const DEFAULT_PROVIDERS = [
 
 export function SocialLoginGroup({ providers = DEFAULT_PROVIDERS }) {
   return (
-    <ul className={styles.list}>
+    <ul className="m-0 flex list-none items-start justify-center gap-6 p-0">
       {providers.map((provider) => (
         <li key={provider.id}>
           <SocialButton

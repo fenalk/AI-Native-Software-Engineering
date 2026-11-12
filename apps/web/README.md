@@ -17,10 +17,29 @@ src/
 │   ├── LoginPage/
 │   └── RegisterPage/
 ├── styles/
-│   └── global.css    # tokens de cor, tipografia e reset
+│   └── global.css    # import do Tailwind, tema (cores/fonte) e reset
 └── test/
     └── setup.js      # jest-dom + cleanup do Testing Library
 ```
+
+### Estilização
+
+Tailwind CSS v4 (`@tailwindcss/vite`). A paleta e a fonte do projeto ficam no
+`@theme` de `src/styles/global.css`:
+
+| Token | Uso |
+| --- | --- |
+| `canvas` | fundo da página |
+| `surface` / `surface-soft` | card / superfície secundária |
+| `ink` / `muted` | texto principal / secundário |
+| `accent` / `accent-hover` / `accent-ink` / `accent-soft` | ação primária e seleção de texto |
+| `field` / `field-hover` / `field-ink` | inputs |
+| `banner` / `edge` / `focus` | banner, borda do card e foco |
+| `shadow-card` / `shadow-accent` | sombra do card e hover do botão |
+
+Use os utilitários (`bg-surface`, `text-ink`, `text-accent` etc.) e a escala
+padrão de fontes do Tailwind. Não use hexadecimais nem tamanhos de fonte
+arbitrários nas classes.
 
 ### Rotas
 

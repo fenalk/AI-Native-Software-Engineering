@@ -8,7 +8,6 @@ import { AuthHeader } from '../../molecules/AuthHeader/AuthHeader.jsx'
 import { Divider } from '../../molecules/Divider/Divider.jsx'
 import { FormField } from '../../molecules/FormField/FormField.jsx'
 import { SocialLoginGroup } from '../SocialLoginGroup/SocialLoginGroup.jsx'
-import styles from './RegisterForm.module.css'
 
 export function RegisterForm({ onSubmit }) {
   const [name, setName] = useState('')
@@ -22,11 +21,11 @@ export function RegisterForm({ onSubmit }) {
   }
 
   return (
-    <div className={styles.root}>
+    <div className="flex flex-col">
       <AuthHeader title="Cadastro" description="Olá! Preencha seus dados." />
 
-      <form className={styles.form} onSubmit={handleSubmit}>
-        <div className={styles.fields}>
+      <form className="mt-8 flex flex-col gap-8" onSubmit={handleSubmit}>
+        <div className="flex flex-col gap-4">
           <FormField
             id="register-name"
             label="Nome"
@@ -60,7 +59,7 @@ export function RegisterForm({ onSubmit }) {
               autoComplete="new-password"
               required
             />
-            <div className={styles.options}>
+            <div className="mt-2">
               <Checkbox
                 id="register-remember"
                 name="remember"
@@ -77,15 +76,15 @@ export function RegisterForm({ onSubmit }) {
         </Button>
       </form>
 
-      <div className={styles.divider}>
+      <div className="mt-8">
         <Divider>ou entre com outras contas</Divider>
       </div>
 
-      <div className={styles.social}>
+      <div className="mt-2">
         <SocialLoginGroup />
       </div>
 
-      <div className={styles.footer}>
+      <div className="mt-6">
         <AuthFooter
           question="Já tem conta?"
           linkLabel="Faça seu login!"
