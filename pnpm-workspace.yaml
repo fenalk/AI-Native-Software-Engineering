@@ -1,2 +1,6 @@
 packages:
   - "apps/*"
+# `@scarf/scarf`, pulled in transitively by `@nestjs/swagger`, is an opt-in
+# telemetry postinstall. It stays blocked on purpose.
+allowBuilds:
+  '@scarf/scarf': false
