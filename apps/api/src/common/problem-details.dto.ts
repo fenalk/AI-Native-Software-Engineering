@@ -54,7 +54,8 @@ export class ProblemDetailsDto {
 
   @ApiPropertyOptional({
     type: [ValidationIssueDto],
-    description: 'Per-property issues, present when the request failed validation.',
+    description:
+      'Per-property issues, present when the request failed validation.',
   })
   errors?: ValidationIssueDto[];
 }

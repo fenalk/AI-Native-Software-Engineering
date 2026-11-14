@@ -23,26 +23,38 @@ describe('Swagger (e2e)', () => {
   });
 
   it('documents the routes, their schemas and the bearer scheme', async () => {
-    const response = await request(app.getHttpServer()).get('/docs-json').expect(200);
+    const response = await request(app.getHttpServer())
+      .get('/docs-json')
+      .expect(200);
     const document = response.body;
 
     expect(Object.keys(document.paths)).toEqual(
       expect.arrayContaining(['/users', '/users/me', '/sessions']),
     );
 
-    expect(document.paths['/users'].post.requestBody.content['application/json'].schema).toMatchObject({
+    expect(
+      document.paths['/users'].post.requestBody.content['application/json']
+        .schema,
+    ).toMatchObject({
       type: 'object',
       required: ['name', 'email', 'password'],
     });
-    expect(document.paths['/users'].post.responses['201'].content['application/json'].schema).toEqual({
+    expect(
+      document.paths['/users'].post.responses['201'].content['application/json']
+        .schema,
+    ).toEqual({
       $ref: '#/components/schemas/UserResponseDto',
     });
     expect(
-      document.paths['/users'].post.responses['409'].content['application/problem+json'].schema,
+      document.paths['/users'].post.responses['409'].content[
+        'application/problem+json'
+      ].schema,
     ).toEqual({ $ref: '#/components/schemas/ProblemDetailsDto' });
 
     expect(
-      document.paths['/sessions'].post.responses['200'].content['application/json'].schema,
+      document.paths['/sessions'].post.responses['200'].content[
+        'application/json'
+      ].schema,
     ).toEqual({ $ref: '#/components/schemas/AccessTokenResponseDto' });
 
     expect(document.paths['/users/me'].get.security).toEqual([{ bearer: [] }]);

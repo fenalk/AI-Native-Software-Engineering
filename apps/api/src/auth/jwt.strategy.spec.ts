@@ -29,15 +29,17 @@ describe('JwtStrategy', () => {
     };
     findById.mockReturnValue(user);
 
-    expect(strategy.validate({ sub: 'user-1', email: 'ada@example.com' })).toEqual(user);
+    expect(
+      strategy.validate({ sub: 'user-1', email: 'ada@example.com' }),
+    ).toEqual(user);
     expect(findById).toHaveBeenCalledWith('user-1');
   });
 
   it('rejects a token whose user no longer exists', () => {
     findById.mockReturnValue(null);
 
-    expect(() => strategy.validate({ sub: 'gone', email: 'ada@example.com' })).toThrow(
-      UnauthorizedException,
-    );
+    expect(() =>
+      strategy.validate({ sub: 'gone', email: 'ada@example.com' }),
+    ).toThrow(UnauthorizedException);
   });
 });

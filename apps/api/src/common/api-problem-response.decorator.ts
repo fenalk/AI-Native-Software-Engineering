@@ -28,7 +28,10 @@ export const ApiProblemNotFoundResponse = () =>
   problemResponse(HttpStatus.NOT_FOUND, 'The resource does not exist.');
 
 export const ApiProblemConflictResponse = () =>
-  problemResponse(HttpStatus.CONFLICT, 'The resource conflicts with existing data.');
+  problemResponse(
+    HttpStatus.CONFLICT,
+    'The resource conflicts with existing data.',
+  );
 
 export const ApiProblemInternalServerErrorResponse = () =>
   problemResponse(

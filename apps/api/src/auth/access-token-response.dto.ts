@@ -7,7 +7,10 @@ export class AccessTokenResponseDto {
   })
   accessToken: string;
 
-  @ApiProperty({ description: 'Scheme of the `Authorization` header.', example: 'Bearer' })
+  @ApiProperty({
+    description: 'Scheme of the `Authorization` header.',
+    example: 'Bearer',
+  })
   tokenType: string;
 
   @ApiProperty({

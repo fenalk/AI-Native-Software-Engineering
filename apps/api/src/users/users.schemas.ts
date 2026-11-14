@@ -1,12 +1,7 @@
 import { z } from 'zod';
 
 export const createUserSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1)
-    .max(120)
-    .describe('Full name of the user.'),
+  name: z.string().trim().min(1).max(120).describe('Full name of the user.'),
   email: z.email().describe('Email address; unique across the API.'),
   password: z
     .string()

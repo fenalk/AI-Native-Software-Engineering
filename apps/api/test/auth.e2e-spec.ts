@@ -123,7 +123,10 @@ describe('Authentication (e2e)', () => {
         .expect(401)
         .expect('Content-Type', /application\/problem\+json/);
 
-      expect(response.body).toMatchObject({ status: 401, instance: '/users/me' });
+      expect(response.body).toMatchObject({
+        status: 401,
+        instance: '/users/me',
+      });
     });
 
     it('rejects an invalid token', async () => {

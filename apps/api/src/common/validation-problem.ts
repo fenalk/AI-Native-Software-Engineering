@@ -17,7 +17,9 @@ export function toValidationIssues(
 ): ValidationIssueDto[] {
   return issues.map((issue) => ({
     path: (issue.path ?? [])
-      .map((segment) => String(typeof segment === 'object' ? segment.key : segment))
+      .map((segment) =>
+        String(typeof segment === 'object' ? segment.key : segment),
+      )
       .join('.'),
     message: issue.message,
   }));

@@ -31,7 +31,13 @@ export class PasswordHasherService {
     }
 
     const expected = Buffer.from(hashHex, 'hex');
-    const actual = await scryptAsync(password, Buffer.from(saltHex, 'hex'), expected.length);
-    return actual.length === expected.length && timingSafeEqual(actual, expected);
+    const actual = await scryptAsync(
+      password,
+      Buffer.from(saltHex, 'hex'),
+      expected.length,
+    );
+    return (
+      actual.length === expected.length && timingSafeEqual(actual, expected)
+    );
   }
 }

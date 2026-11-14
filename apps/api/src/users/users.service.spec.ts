@@ -20,7 +20,10 @@ describe('UsersService', () => {
       password: 'senha-segura',
     });
 
-    expect(user).toMatchObject({ name: 'Ada Lovelace', email: 'ada@example.com' });
+    expect(user).toMatchObject({
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+    });
     expect(user.id).toEqual(expect.any(String));
     expect(user.createdAt).toBeInstanceOf(Date);
     expect(user).not.toHaveProperty('password');
@@ -94,7 +97,9 @@ describe('UsersService', () => {
     const credentials = usersService.findCredentials('ADA@example.com');
 
     expect(credentials?.user).toEqual(created);
-    expect(credentials?.passwordHash).toMatch(/^scrypt\$[0-9a-f]{32}\$[0-9a-f]{128}$/);
+    expect(credentials?.passwordHash).toMatch(
+      /^scrypt\$[0-9a-f]{32}\$[0-9a-f]{128}$/,
+    );
     expect(usersService.findCredentials('nobody@example.com')).toBeNull();
   });
 });

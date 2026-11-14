@@ -29,7 +29,10 @@ export class AuthController {
   @ApiProblemBadRequestResponse()
   @ApiProblemUnauthorizedResponse()
   async signIn(@Body({ schema: signInSchema }) input: SignInInput) {
-    const user = await this.authService.validateUser(input.email, input.password);
+    const user = await this.authService.validateUser(
+      input.email,
+      input.password,
+    );
     return this.authService.login(user);
   }
 }
