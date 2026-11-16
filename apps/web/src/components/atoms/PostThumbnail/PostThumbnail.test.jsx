@@ -12,6 +12,28 @@ describe('PostThumbnail', () => {
     )
   })
 
+  it('loads feed thumbnails lazily', () => {
+    render(<PostThumbnail src="/seed/feed-01.png" alt="Prévia do post" />)
+
+    const image = screen.getByAltText('Prévia do post')
+    expect(image).toHaveAttribute('loading', 'lazy')
+    expect(image).toHaveAttribute('fetchpriority', 'auto')
+  })
+
+  it('loads the detail thumbnail eagerly with high priority', () => {
+    render(
+      <PostThumbnail
+        src="/seed/feed-01.png"
+        alt="Prévia do post"
+        variant="detail"
+      />,
+    )
+
+    const image = screen.getByAltText('Prévia do post')
+    expect(image).toHaveAttribute('loading', 'eager')
+    expect(image).toHaveAttribute('fetchpriority', 'high')
+  })
+
   it('renders the placeholder when there is no thumbnail', () => {
     render(<PostThumbnail src={null} />)
 

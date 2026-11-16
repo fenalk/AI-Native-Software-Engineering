@@ -4,8 +4,17 @@ import { BrandMark } from '../BrandMark/BrandMark.jsx'
 /**
  * Post preview image. `src` is data-supplied, so the component must survive a
  * missing value and a broken URL: both render the same placeholder.
+ *
+ * `priority` marks an image above the fold (the detail page): it loads eagerly
+ * with a high fetch priority instead of lazily. The frame has a fixed height,
+ * so the image never shifts the layout while it loads.
  */
-export function PostThumbnail({ src, alt = '', variant = 'feed' }) {
+export function PostThumbnail({
+  src,
+  alt = '',
+  variant = 'feed',
+  priority = variant === 'detail',
+}) {
   const [failed, setFailed] = useState(false)
   const hasImage = Boolean(src) && !failed
 
@@ -21,7 +30,9 @@ export function PostThumbnail({ src, alt = '', variant = 'feed' }) {
           <img
             src={src}
             alt={alt}
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
             onError={() => setFailed(true)}
             className="size-full object-cover"
           />
