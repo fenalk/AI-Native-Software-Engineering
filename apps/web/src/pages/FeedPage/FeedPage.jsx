@@ -47,9 +47,25 @@ export function FeedPage({ navigate = defaultNavigate }) {
   const [posts, setPosts] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState(null)
+
+  // Loading and errors are derived from the request they belong to, instead
+  // of flags toggled by each handler: the feed is loading until the response
+  // for the current search/tags/sort arrives, and an error only shows while
+  // its request is still the current one. A search that returns to the same
+  // debounced value therefore never leaves the feed stuck on "loading".
+  const requestKey = JSON.stringify([debouncedSearch, selectedTags, sort])
+  const [loadedKey, setLoadedKey] = useState(null)
+  const [failure, setFailure] = useState(null)
+  const loading = loadedKey !== requestKey
+  const error = failure?.key === requestKey ? failure.message : null
+
+  function fail(requestError) {
+    setFailure({
+      key: requestKey,
+      message: toProblemDetails(requestError).detail,
+    })
+  }
 
   useEffect(() => {
     let active = true
@@ -89,42 +105,29 @@ export function FeedPage({ navigate = defaultNavigate }) {
         setPosts(data.items)
         setTotal(data.total)
         setPage(1)
+        setFailure(null)
+        setLoadedKey(requestKey)
       })
       .catch((requestError) => {
         if (!active) {
           return
         }
 
-        setError(toProblemDetails(requestError).detail)
+        setFailure({
+          key: requestKey,
+          message: toProblemDetails(requestError).detail,
+        })
         setPosts([])
         setTotal(0)
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false)
-        }
+        setLoadedKey(requestKey)
       })
 
     return () => {
       active = false
     }
-  }, [debouncedSearch, selectedTags, sort])
-
-  function handleSearchChange(value) {
-    setSearch(value)
-    setLoading(true)
-    setError(null)
-  }
-
-  function changeSort(nextSort) {
-    setSort(nextSort)
-    setLoading(true)
-    setError(null)
-  }
+  }, [debouncedSearch, selectedTags, sort, requestKey])
 
   function toggleTag(slug) {
-    setLoading(true)
-    setError(null)
     setSelectedTags((current) =>
       current.includes(slug)
         ? current.filter((tag) => tag !== slug)
@@ -134,7 +137,7 @@ export function FeedPage({ navigate = defaultNavigate }) {
 
   async function handleLoadMore() {
     setLoadingMore(true)
-    setError(null)
+    setFailure(null)
 
     try {
       const nextPage = page + 1
@@ -150,7 +153,7 @@ export function FeedPage({ navigate = defaultNavigate }) {
       setTotal(data.total)
       setPage(nextPage)
     } catch (requestError) {
-      setError(toProblemDetails(requestError).detail)
+      fail(requestError)
     } finally {
       setLoadingMore(false)
     }
@@ -199,7 +202,7 @@ export function FeedPage({ navigate = defaultNavigate }) {
         return
       }
 
-      setError(toProblemDetails(requestError).detail)
+      fail(requestError)
     }
   }
 
@@ -207,16 +210,12 @@ export function FeedPage({ navigate = defaultNavigate }) {
     <AppTemplate active="feed">
       <div className="flex flex-col gap-10">
         <section className="flex flex-col gap-4" aria-label="Busca e filtros">
-          <SearchField value={search} onChange={handleSearchChange} />
+          <SearchField value={search} onChange={setSearch} />
           <FilterBar
             tags={availableTags}
             selected={selectedTags}
             onToggle={toggleTag}
-            onClear={() => {
-              setSelectedTags([])
-              setLoading(true)
-              setError(null)
-            }}
+            onClear={() => setSelectedTags([])}
           />
         </section>
 
@@ -226,10 +225,10 @@ export function FeedPage({ navigate = defaultNavigate }) {
             aria-label="Ordenar posts"
             className="flex items-center justify-center gap-6"
           >
-            <Tab active={sort === 'recent'} onClick={() => changeSort('recent')}>
+            <Tab active={sort === 'recent'} onClick={() => setSort('recent')}>
               Recentes
             </Tab>
-            <Tab active={sort === 'popular'} onClick={() => changeSort('popular')}>
+            <Tab active={sort === 'popular'} onClick={() => setSort('popular')}>
               Mais curtidos
             </Tab>
           </div>

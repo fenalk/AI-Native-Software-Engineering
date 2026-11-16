@@ -155,6 +155,43 @@ describe('FeedPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('keeps the list when the search returns to the same value within the debounce', async () => {
+    const user = userEvent.setup()
+    renderFeed()
+
+    await screen.findByRole('heading', { name: POST.title })
+    await user.type(screen.getByLabelText('Buscar posts'), 'a{Backspace}')
+
+    // The debounced value never changes, so no request is sent and the
+    // feed must not stay stuck on the loading message.
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    expect(screen.queryByText('Carregando posts...')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: POST.title })).toBeInTheDocument()
+    expect(listPosts).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the error and recovers after changing the filter', async () => {
+    const user = userEvent.setup()
+    listPosts.mockRejectedValueOnce({
+      response: {
+        status: 503,
+        data: { title: 'Service Unavailable', status: 503, detail: 'Serviço indisponível' },
+      },
+    })
+    renderFeed()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Serviço indisponível',
+    )
+
+    await user.click(screen.getByRole('tab', { name: 'Mais curtidos' }))
+
+    expect(
+      await screen.findByRole('heading', { name: POST.title }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('shows an empty state when nothing matches', async () => {
     listPosts.mockResolvedValue({ items: [], page: 1, limit: 12, total: 0 })
     renderFeed()
