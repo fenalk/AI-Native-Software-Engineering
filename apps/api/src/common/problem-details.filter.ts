@@ -42,18 +42,22 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(exception);
     }
 
-    const { detail, errors } = describe(exception);
+    // Only client errors (4xx) carry a message chosen by the application.
+    // A 5xx — even an `HttpException` built from a driver error — never
+    // echoes its message, `cause` or stack back to the client.
+    const { detail, errors } =
+      status < HttpStatus.INTERNAL_SERVER_ERROR ? describe(exception) : {};
     const body: ProblemDetailsResponse = {
       type: 'about:blank',
       title: httpStatusTitle(status),
       status,
       detail:
         detail ??
-        (status === HttpStatus.INTERNAL_SERVER_ERROR
+        (status >= HttpStatus.INTERNAL_SERVER_ERROR
           ? 'An unexpected error occurred.'
           : httpStatusTitle(status)),
       instance: httpAdapter.getRequestUrl(ctx.getRequest()),
