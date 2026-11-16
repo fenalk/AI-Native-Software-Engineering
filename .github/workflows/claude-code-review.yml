@@ -1,0 +1,44 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+jobs:
+  claude-review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. Read AGENTS.md (and apps/api/AGENTS.md when the API changes)
+            first and check the diff against it. Focus on:
+            - Correctness bugs and security issues.
+            - API: REST contract (plural resource URLs, status codes, Location on POST,
+              RFC 9457 errors, DTOs instead of persistence entities), ESM imports ending in `.js`,
+              Standard Schema validation, Vitest (not Jest).
+            - Web: plain JavaScript (no TypeScript), Atomic Design import direction
+              (atoms -> molecules -> organisms -> templates -> pages), Tailwind theme tokens only
+              (no literal hex/rgb colors, no arbitrary font sizes), a behavior test for every component.
+            - Commit safety: no absolute personal paths, `.env` files or credentials.
+
+            Be concise and only report real problems, citing file and line. Write the review in
+            Portuguese (pt-BR). Post it with `gh pr comment` on this PR.
+          claude_args: '--allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
