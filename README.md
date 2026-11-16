@@ -79,6 +79,10 @@ cp apps/api/.env.example apps/api/.env   # ajuste se necessário
 pnpm api db:migrate
 ```
 
+O `.env.example` traz `NODE_ENV=development`, que permite subir a API com o segredo JWT público
+de desenvolvimento. Com qualquer outro `NODE_ENV` (ou sem ele, como em produção) a API **não
+sobe** sem um `JWT_SECRET` de pelo menos 32 caracteres.
+
 O container publica a porta **5433** no host, porque o 5432 costuma estar ocupado por um
 PostgreSQL instalado localmente. Use `POSTGRES_PORT` para trocar.
 
@@ -128,7 +132,8 @@ pnpm api db:seed
 
 Credenciais de demonstração: `ada@codeconnect.dev` / `senha-segura` (os demais usuários do seed
 usam a mesma senha). O comando **apaga todos os posts e tags** antes de inserir os dados de
-demonstração; use apenas em desenvolvimento.
+demonstração; por isso recusa `NODE_ENV=production` e bancos fora de `localhost` (a menos que
+`SEED_ALLOW_REMOTE=true` confirme).
 
 ## Estatísticas do código
 
