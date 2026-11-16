@@ -202,6 +202,22 @@ describe('Posts (e2e)', () => {
       );
     });
 
+    it.each(['javascript:alert(1)', 'data:image/png;base64,AAAA', '//evil.example.com/a.png'])(
+      'rejects the unsafe thumbnail %s',
+      async (thumbnailUrl) => {
+        const response = await request(app.getHttpServer())
+          .post('/posts')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ ...post, thumbnailUrl })
+          .expect(400)
+          .expect('Content-Type', /application\/problem\+json/);
+
+        expect(response.body.errors).toEqual([
+          expect.objectContaining({ path: 'thumbnailUrl' }),
+        ]);
+      },
+    );
+
     it('rejects an invalid payload', async () => {
       const response = await request(app.getHttpServer())
         .post('/posts')
