@@ -7,10 +7,22 @@ vi.mock('./services/auth-service.js', () => ({
   signUp: vi.fn(),
 }))
 
+vi.mock('./services/posts-service.js', () => ({
+  createComment: vi.fn(),
+  createPost: vi.fn(),
+  getPost: vi.fn(),
+  likePost: vi.fn(),
+  listComments: vi.fn(),
+  listPosts: vi.fn(),
+  listTags: vi.fn(),
+  unlikePost: vi.fn(),
+}))
+
 import App from './App.jsx'
 import { LoginPage } from './pages/LoginPage/LoginPage.jsx'
 import { RegisterPage } from './pages/RegisterPage/RegisterPage.jsx'
 import { getCurrentUser } from './services/auth-service.js'
+import { listPosts, listTags } from './services/posts-service.js'
 import {
   clearAccessToken,
   saveAccessToken,
@@ -34,6 +46,18 @@ describe('App', () => {
 
     const fallback = render(<App path="/algo-inexistente" />)
     expect(fallback.container.querySelector('h1')).toHaveTextContent('Login')
+  })
+
+  it('renders the feed on / and on /feed', async () => {
+    listTags.mockResolvedValue([])
+    listPosts.mockResolvedValue({ items: [], page: 1, limit: 12, total: 0 })
+
+    const root = render(<App path="/" />)
+    expect(await screen.findByLabelText('Buscar posts')).toBeInTheDocument()
+    root.unmount()
+
+    render(<App path="/feed" />)
+    expect(await screen.findByLabelText('Buscar posts')).toBeInTheDocument()
   })
 
   it('renders the account page on /conta', async () => {

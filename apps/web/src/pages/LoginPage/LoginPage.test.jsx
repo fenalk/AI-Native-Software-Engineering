@@ -36,7 +36,7 @@ describe('LoginPage', () => {
     render(<LoginPage navigate={navigate} />)
     await submitLogin(user)
 
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/conta'))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/feed'))
 
     expect(signIn).toHaveBeenCalledWith({
       email: 'ada@exemplo.com',
@@ -55,7 +55,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByLabelText('Lembrar-me'))
     await submitLogin(user)
 
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/conta'))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/feed'))
 
     expect(window.sessionStorage.getItem(STORAGE_KEY)).toBe('token-123')
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
@@ -132,6 +132,6 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: 'Entrando...' })).toBeDisabled()
 
     resolveSignIn({ accessToken: 'token-123' })
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/conta'))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/feed'))
   })
 })

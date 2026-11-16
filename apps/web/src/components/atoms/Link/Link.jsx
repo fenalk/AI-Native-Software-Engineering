@@ -4,6 +4,8 @@ const BASE_CLASSES =
 const VARIANT_CLASSES = {
   subtle: 'text-sm text-muted hover:text-ink',
   accent: 'inline-flex items-center gap-3 text-lg text-accent hover:text-accent-hover',
+  outline:
+    'inline-flex w-full items-center justify-center gap-2 rounded-lg border border-accent px-4 py-3 text-xl leading-normal text-accent hover:border-accent-hover hover:text-accent-hover',
 }
 
 export function Link({

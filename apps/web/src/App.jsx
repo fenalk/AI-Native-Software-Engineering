@@ -1,24 +1,64 @@
+import { AboutPage } from './pages/AboutPage/AboutPage.jsx'
 import { AccountPage } from './pages/AccountPage/AccountPage.jsx'
+import { FeedPage } from './pages/FeedPage/FeedPage.jsx'
 import { LoginPage } from './pages/LoginPage/LoginPage.jsx'
+import { PostPage } from './pages/PostPage/PostPage.jsx'
+import { PublishPage } from './pages/PublishPage/PublishPage.jsx'
 import { RegisterPage } from './pages/RegisterPage/RegisterPage.jsx'
+import { SessionProvider } from './session/SessionProvider.jsx'
 
 const ROUTES = {
-  '/': 'login',
+  '/': 'feed',
+  '/feed': 'feed',
+  '/publicar': 'publish',
   '/login': 'login',
   '/cadastro': 'register',
   '/conta': 'account',
+  '/sobre': 'about',
 }
 
-export default function App({ path = window.location.pathname }) {
+const POST_PATH = /^\/posts\/([^/]+)\/?$/
+
+const defaultNavigate = (path) => window.location.assign(path)
+
+function withSession(element, navigate) {
+  return <SessionProvider navigate={navigate}>{element}</SessionProvider>
+}
+
+export default function App({
+  path = window.location.pathname,
+  navigate = defaultNavigate,
+}) {
+  const postMatch = path.match(POST_PATH)
+
+  if (postMatch) {
+    return withSession(
+      <PostPage postId={postMatch[1]} navigate={navigate} />,
+      navigate,
+    )
+  }
+
   const route = ROUTES[path]
 
   if (route === 'account') {
-    return <AccountPage />
+    return <AccountPage navigate={navigate} />
   }
 
   if (route === 'register') {
-    return <RegisterPage />
+    return <RegisterPage navigate={navigate} />
   }
 
-  return <LoginPage />
+  if (route === 'publish') {
+    return withSession(<PublishPage navigate={navigate} />, navigate)
+  }
+
+  if (route === 'about') {
+    return withSession(<AboutPage />, navigate)
+  }
+
+  if (route === 'feed') {
+    return withSession(<FeedPage navigate={navigate} />, navigate)
+  }
+
+  return <LoginPage navigate={navigate} />
 }

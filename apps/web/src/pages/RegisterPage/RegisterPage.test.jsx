@@ -44,7 +44,7 @@ describe('RegisterPage', () => {
     render(<RegisterPage navigate={navigate} />)
     await fillForm(user)
 
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/conta'))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/feed'))
 
     expect(signUp).toHaveBeenCalledWith({
       name: 'Ada Lovelace',

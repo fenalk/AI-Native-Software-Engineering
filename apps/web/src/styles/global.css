@@ -2,12 +2,14 @@
 
 @theme {
   --font-sans: 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Paleta do projeto Code Connect */
   --color-canvas: #00090e;
   --color-surface: #171d1f;
   --color-surface-soft: #242826;
   --color-ink: #e1e1e1;
+  --color-ink-soft: #bcbcbc;
   --color-muted: #888888;
   --color-accent: #81fe88;
   --color-accent-hover: #a1ffa6;
@@ -23,6 +25,7 @@
 
   --shadow-card: 0 30px 80px rgb(0 0 0 / 45%);
   --shadow-accent: 0 8px 24px rgb(129 254 136 / 18%);
+  --shadow-editor: 0 16px 24px rgb(0 0 0 / 24%);
 }
 
 @layer base {

@@ -27,7 +27,7 @@ export function LoginPage({ navigate = defaultNavigate }) {
       const { accessToken } = await signIn({ email, password })
 
       saveAccessToken(accessToken, { persist: remember })
-      navigate('/conta')
+      navigate('/feed')
     } catch (requestError) {
       const problem = toProblemDetails(requestError)
       const issues = toFieldErrors(problem)

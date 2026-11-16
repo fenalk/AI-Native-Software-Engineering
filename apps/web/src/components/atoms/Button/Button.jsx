@@ -4,6 +4,9 @@ const BASE_CLASSES =
 const VARIANT_CLASSES = {
   primary:
     'bg-accent text-accent-ink enabled:hover:bg-accent-hover enabled:hover:shadow-accent',
+  ghost: 'bg-transparent text-ink enabled:hover:text-accent',
+  ghostField:
+    'bg-transparent text-field-ink enabled:hover:text-field-hover',
 }
 
 export function Button({
