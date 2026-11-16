@@ -4,6 +4,7 @@ import { inArray } from 'drizzle-orm';
 import { AppModule } from '../app.module.js';
 import { PasswordHasherService } from '../users/password-hasher.service.js';
 import type { Database } from './database.js';
+import { assertSeedAllowed } from './seed-guard.js';
 import {
   comments,
   postLikes,
@@ -257,6 +258,10 @@ const seedComments = [
 ];
 
 async function seed(): Promise<void> {
+  // Before building anything: the seed deletes every post and tag, so it must
+  // never run against production or a remote host.
+  assertSeedAllowed();
+
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: false,
   });
@@ -264,22 +269,18 @@ async function seed(): Promise<void> {
   try {
     const db = app.get<Database>(getDrizzleToken());
     const passwordHasher = app.get(PasswordHasherService);
-    const passwordHash = await passwordHasher.hash(DEMO_PASSWORD);
 
-    // Users are upserted so re-running the seed keeps the demo credentials.
+    // Users are inserted, never updated: re-running the seed keeps the demo
+    // credentials, and an account that already exists keeps its own password
+    // instead of being reset to the public demo one.
     for (const user of seedUsers) {
       await db
         .insert(users)
-        .values({ ...user, passwordHash })
-        .onConflictDoUpdate({
-          target: users.email,
-          set: {
-            name: user.name,
-            username: user.username,
-            avatarUrl: user.avatarUrl,
-            passwordHash,
-          },
-        });
+        .values({
+          ...user,
+          passwordHash: await passwordHasher.hash(DEMO_PASSWORD),
+        })
+        .onConflictDoNothing({ target: users.email });
     }
 
     // Destructive: comments, likes and post_tags cascade from posts.
@@ -369,7 +370,7 @@ async function seed(): Promise<void> {
     console.log(
       `Seed ready: ${seedUsers.length} users, ${seedPosts.length} posts, ${seedComments.length} comments.`,
     );
-    console.log(`Demo login: ada@codeconnect.dev / ${DEMO_PASSWORD}`);
+    console.log('Demo login: ada@codeconnect.dev / senha-segura');
   } finally {
     await app.close();
   }
