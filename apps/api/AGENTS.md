@@ -23,6 +23,13 @@ Validation works with Zod, Valibot, ArkType or any other Standard Schema library
 
 Nest's packages are ESM only, and this project is ESM too: relative imports end in `.js`, `__dirname` doesn't exist (use `import.meta.dirname`), and tests run on Vitest, so mocks are `vi.fn()`, not `jest.fn()`.
 
+## Database
+
+- Users live in PostgreSQL through Drizzle (`@nestjs/drizzle` + `drizzle-orm` + `pg`). `DrizzleModule.forRootAsync` in `src/app.module.ts` reads `DATABASE_URL` from `@nestjs/config`.
+- The schema is `src/db/schema.ts` and it is the source of truth. Queries stay in injectable repositories (`UsersRepository`), not in services or controllers.
+- After changing the schema, run `pnpm api db:generate` from the repository root and commit the generated SQL under `apps/api/drizzle/`. Never edit a migration that has already been applied.
+- Unit tests mock the repository (`{ provide: UsersRepository, useValue: ... }`) and never touch the database. E2E tests run against `ainative_test` (`TEST_DATABASE_URL`), apply migrations in `test/e2e.setup.ts` and truncate `users` before each test; they need the compose container up.
+
 ## Production data: NestJS Observe
 
 This app's production telemetry - traces, errors, logs and metrics - goes to [NestJS Observe](https://observe.nestjs.com). Until `ObserveModule` is registered in `src/app.module.ts`, nothing is sent: `npx @nestjs/observe link` sets it up in one step - it installs `@nestjs/observe`, wires it into the app, and writes the key pair (`OBSERVE_APP_KEY`, `OBSERVE_APP_SECRET`) to `.env`.

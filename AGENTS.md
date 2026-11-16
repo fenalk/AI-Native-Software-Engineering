@@ -6,7 +6,7 @@
 - `apps/web` — React 19 + Vite 8, **JavaScript puro** (sem TypeScript).
 - `apps/api` — NestJS 12, TypeScript em modo **ESM**, testes com Vitest.
 - `Setup/` — material de estudo do curso (conceitos de modelos de IA), não é código da aplicação. Não importe nem "corrija".
-- Ainda **não há integração**: o web não chama a API, e a API não tem CORS nem proxy do Vite configurados.
+- O web fala com a API por `axios` (`apps/web/src/services`); em desenvolvimento o proxy do Vite encaminha `/api` para `http://localhost:3000`, sem CORS. Em produção, `/api` precisa ser roteado para a API ou `VITE_API_URL` deve apontar para ela.
 
 ## Comandos
 
@@ -17,13 +17,20 @@ Execute a partir da raiz do repositório. `pnpm web <cmd>` e `pnpm api <cmd>` re
 | Os dois servidores de desenvolvimento | `pnpm dev` |
 | Só web (5173) / só API (3000) | `pnpm dev:web` / `pnpm dev:api` |
 | Um teste unitário da API | `pnpm api test src/app.controller.spec.ts` |
-| Um teste de componente web (após configuração) | `pnpm web test src/components/atoms/Button.test.jsx` |
+| Um teste de componente/página web | `pnpm web test src/components/atoms/Checkbox/Checkbox.test.jsx` |
 | Testes unitários em modo watch | `pnpm api test:watch` |
 | Testes e2e da API | `pnpm api test:e2e` |
 | Lint de tudo / build de tudo | `pnpm lint` / `pnpm build` |
 
 - O `pnpm test` da raiz roda `vitest run` e considera apenas `**/*.spec.ts`; os e2e (`test/**/*.e2e-spec.ts`) precisam de `pnpm api test:e2e`.
 - A porta da API respeita `PORT` (padrão 3000).
+
+## Banco de dados
+
+- PostgreSQL sobe pelo `docker-compose.yml` na raiz (`docker compose up -d --wait`), com volume nomeado `ai-native_postgres-data` e porta **5433** no host (o 5432 costuma estar ocupado por um PostgreSQL local). `POSTGRES_PORT` troca a porta.
+- A API usa **Drizzle ORM** via `@nestjs/drizzle`: schema em `apps/api/src/db/schema.ts`, migrations versionadas em `apps/api/drizzle/` e queries em repositórios injetáveis (ex.: `UsersRepository`).
+- `DATABASE_URL` e `TEST_DATABASE_URL` ficam em `apps/api/.env` (veja `.env.example`). Depois de mudar o schema, rode `pnpm api db:generate` e versione o SQL; `pnpm api db:migrate` aplica as migrations.
+- `pnpm api test` não usa banco (os unitários mockam os repositórios). `pnpm api test:e2e` exige o container de pé, usa o banco `ainative_test` e aplica as migrations automaticamente.
 
 ## Windows: pnpm.exe está bloqueado nesta máquina
 
@@ -64,7 +71,9 @@ Todo endpoint novo deve seguir REST, não RPC:
   - atoms: apresentacionais e agnósticos de domínio (sem busca de dados); molecules compõem atoms; organisms são donos do comportamento de domínio; templates definem layout/slots; pages ligam os dados e compõem templates.
 - **Tailwind CSS v4** é o sistema de estilização (`@tailwindcss/vite`, tema em `src/styles/global.css`). Estilize com classes utilitárias no JSX; sem CSS-in-JS, arquivos CSS por componente ou props `style` avulsas. O CSS global serve apenas para importar o Tailwind, declarar o tema e o reset base. Cores e tamanhos seguem as guidelines abaixo.
 - Todo componente deve vir com um teste cobrindo seu uso essencial (renderiza com as props principais + interação principal), colocado como `Component.test.jsx`. Verifique comportamento, não snapshots de marcação.
-- Ainda não existe runner de testes no web: quando o primeiro componente for criado, adicione Vitest + `@testing-library/react` (jsdom) e um script `test` para que o `pnpm test` da raiz também cubra o web.
+- Os testes usam Vitest + `@testing-library/react` (jsdom); `src/test/setup.js` polyfilla `localStorage`/`sessionStorage` porque o Node 26 expõe globais experimentais que sombreiam o jsdom.
+- A integração HTTP fica em `src/services`: `api-client` (axios e Bearer token), `auth-service` (`/sessions`, `/users`, `/users/me`), `session-storage` (chave `code-connect.access-token`) e `problem-details` (erros RFC 9457). As páginas chamam os serviços; os organisms só recebem `onSubmit`, `error`, `fieldErrors` e `submitting`.
+- A sessão vai para `localStorage` quando "Lembrar-me" está marcado e para `sessionStorage` caso contrário. A rota `/conta` consulta `GET /users/me` e é o destino após login ou cadastro.
 - Apenas oxlint (`react/rules-of-hooks` é erro).
 
 ### Cores
@@ -88,6 +97,7 @@ A paleta do projeto é a única fonte de cores do web e fica no `@theme` de `src
 | `banner` | `#08120e` | fundo do banner |
 | `edge` | `#000000` | borda do card |
 | `focus` | `#ffffff` | outline de foco |
+| `danger` | `#ff8b8b` | texto e borda de erro |
 
 - Use os utilitários derivados do tema (`bg-canvas`, `bg-surface`, `text-ink`, `text-accent`, `border-edge`, `outline-focus` etc.).
 - Nunca escreva hexadecimal ou `rgb()`/`rgba()` diretamente nas classes (`bg-[#171d1f]`, `text-[#ffffff]`) nem em CSS de componente.

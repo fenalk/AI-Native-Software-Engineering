@@ -10,6 +10,8 @@ Monorepo gerenciado com [pnpm workspaces](https://pnpm.io/workspaces).
 ├── apps/
 │   ├── web/   # React + Vite
 │   └── api/   # NestJS
+├── docker/    # scripts de inicialização do PostgreSQL
+├── docker-compose.yml
 ├── package.json
 └── pnpm-workspace.yaml
 ```
@@ -18,6 +20,7 @@ Monorepo gerenciado com [pnpm workspaces](https://pnpm.io/workspaces).
 
 - Node.js >= 20
 - pnpm >= 10
+- Docker com Compose (para o PostgreSQL de desenvolvimento)
 
 ```bash
 pnpm install
@@ -61,6 +64,40 @@ pnpm api test
 
 - Web (Vite): <http://localhost:5173>
 - API (NestJS): <http://localhost:3000>
+- PostgreSQL (Docker): `localhost:5433`
+
+### Banco de dados (PostgreSQL)
+
+A API persiste os usuários em PostgreSQL com [Drizzle ORM](https://orm.drizzle.team). O banco de
+desenvolvimento sobe pelo `docker-compose.yml` da raiz, com o volume nomeado
+`ai-native_postgres-data`: os dados sobrevivem a `docker compose down` (só `docker compose down -v`
+apaga).
+
+```bash
+docker compose up -d --wait
+cp apps/api/.env.example apps/api/.env   # ajuste se necessário
+pnpm api db:migrate
+```
+
+O container publica a porta **5433** no host, porque o 5432 costuma estar ocupado por um
+PostgreSQL instalado localmente. Use `POSTGRES_PORT` para trocar.
+
+O script `docker/postgres/init` cria o banco `ainative_test` usado pelos testes e2e na primeira
+inicialização do volume. Se o volume já existir, crie manualmente:
+
+```bash
+docker compose exec postgres createdb -U ainative ainative_test
+```
+
+| Comando | Descrição |
+|---|---|
+| `pnpm api db:generate` | Gera uma migration SQL a partir de `apps/api/src/db/schema.ts` |
+| `pnpm api db:migrate` | Aplica as migrations pendentes |
+| `pnpm api db:studio` | Abre o Drizzle Studio |
+
+Versione sempre os arquivos gerados em `apps/api/drizzle/` junto com a mudança de schema.
+`pnpm api test` roda sem banco; `pnpm api test:e2e` exige o container de pé, e as migrations do
+banco de teste são aplicadas automaticamente antes da suíte.
 
 ## Estatísticas do código
 
