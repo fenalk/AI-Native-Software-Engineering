@@ -1,6 +1,20 @@
 import { apiClient } from './api-client.js'
 
 /**
+ * `postId` becomes a path segment, so invalid ids are rejected here instead of
+ * being interpolated: `/posts/..` would otherwise resolve to `GET /` on the API.
+ */
+const POST_PATH = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function postPath(postId, suffix = '') {
+  if (!POST_PATH.test(String(postId))) {
+    throw new Error('Invalid post id')
+  }
+
+  return `/posts/${encodeURIComponent(postId)}${suffix}`
+}
+
+/**
  * Lists posts with the backend filters. `tags` is an array of slugs; the API
  * expects a comma-separated string and applies AND semantics.
  */
@@ -28,7 +42,7 @@ export async function listPosts({
 
 /** Reads a single post, including its code/content. */
 export async function getPost(postId) {
-  const { data } = await apiClient.get(`/posts/${postId}`)
+  const { data } = await apiClient.get(postPath(postId))
 
   return data
 }
@@ -42,24 +56,24 @@ export async function createPost(input) {
 
 /** Likes a post. The API is idempotent and answers 204. */
 export async function likePost(postId) {
-  await apiClient.post(`/posts/${postId}/likes`)
+  await apiClient.post(postPath(postId, '/likes'))
 }
 
 /** Removes the like. The API is idempotent and answers 204. */
 export async function unlikePost(postId) {
-  await apiClient.delete(`/posts/${postId}/likes`)
+  await apiClient.delete(postPath(postId, '/likes'))
 }
 
 /** Lists the comments of a post; replies carry `parentId`. */
 export async function listComments(postId) {
-  const { data } = await apiClient.get(`/posts/${postId}/comments`)
+  const { data } = await apiClient.get(postPath(postId, '/comments'))
 
   return data
 }
 
 /** Creates a top-level comment or a reply. */
 export async function createComment(postId, input) {
-  const { data } = await apiClient.post(`/posts/${postId}/comments`, input)
+  const { data } = await apiClient.post(postPath(postId, '/comments'), input)
 
   return data
 }

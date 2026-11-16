@@ -1,22 +1,30 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '../../components/atoms/Button/Button.jsx'
 import { FilterBar } from '../../components/molecules/FilterBar/FilterBar.jsx'
 import { SearchField } from '../../components/molecules/SearchField/SearchField.jsx'
 import { PostGrid } from '../../components/organisms/PostGrid/PostGrid.jsx'
 import { AppTemplate } from '../../components/templates/AppTemplate/AppTemplate.jsx'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js'
-import {
-  likePost,
-  listPosts,
-  listTags,
-  unlikePost,
-} from '../../services/posts-service.js'
+import { usePostLike } from '../../hooks/usePostLike.js'
+import { listPosts, listTags } from '../../services/posts-service.js'
 import { toProblemDetails } from '../../services/problem-details.js'
 import { useSession } from '../../session/session-context.js'
 
 const PAGE_SIZE = 12
 
 const defaultNavigate = (path) => window.location.assign(path)
+
+/**
+ * Only one of these is visible at a time, so a stale error can never stay on
+ * screen next to a fresh attempt: `loading` covers the first page, `ready` the
+ * filled grid and `empty` the "nothing matched" message.
+ */
+const VIEW = {
+  loading: 'loading',
+  ready: 'ready',
+  empty: 'empty',
+  error: 'error',
+}
 
 function Tab({ active, children, onClick }) {
   return (
@@ -47,9 +55,12 @@ export function FeedPage({ navigate = defaultNavigate }) {
   const [posts, setPosts] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
+  const [view, setView] = useState(VIEW.loading)
   const [error, setError] = useState(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+  // Bumped whenever the filters change, so the request effect re-runs even when
+  // two different inputs produce the same query.
+  const [requestId, setRequestId] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -89,6 +100,8 @@ export function FeedPage({ navigate = defaultNavigate }) {
         setPosts(data.items)
         setTotal(data.total)
         setPage(1)
+        setError(null)
+        setView(data.items.length > 0 ? VIEW.ready : VIEW.empty)
       })
       .catch((requestError) => {
         if (!active) {
@@ -98,38 +111,65 @@ export function FeedPage({ navigate = defaultNavigate }) {
         setError(toProblemDetails(requestError).detail)
         setPosts([])
         setTotal(0)
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false)
-        }
+        setView(VIEW.error)
       })
 
     return () => {
       active = false
     }
-  }, [debouncedSearch, selectedTags, sort])
+  }, [debouncedSearch, selectedTags, sort, requestId])
+
+  const applyLike = useCallback((postId, changes) => {
+    setPosts((current) =>
+      current.map((candidate) =>
+        candidate.id === postId ? { ...candidate, ...changes } : candidate,
+      ),
+    )
+  }, [])
+
+  const showError = useCallback((detail) => {
+    setError(detail)
+    setView(VIEW.error)
+  }, [])
+
+  const handleLike = usePostLike({
+    isAuthenticated,
+    navigate,
+    onChange: applyLike,
+    onError: showError,
+  })
+
+  /** Any filter change hides the previous result and its error right away. */
+  function refilter(update) {
+    update()
+    setView(VIEW.loading)
+    setError(null)
+    setRequestId((current) => current + 1)
+  }
 
   function handleSearchChange(value) {
     setSearch(value)
-    setLoading(true)
-    setError(null)
   }
 
   function changeSort(nextSort) {
-    setSort(nextSort)
-    setLoading(true)
-    setError(null)
+    refilter(() => setSort(nextSort))
   }
 
   function toggleTag(slug) {
-    setLoading(true)
-    setError(null)
-    setSelectedTags((current) =>
-      current.includes(slug)
-        ? current.filter((tag) => tag !== slug)
-        : [...current, slug],
+    refilter(() =>
+      setSelectedTags((current) =>
+        current.includes(slug)
+          ? current.filter((tag) => tag !== slug)
+          : [...current, slug],
+      ),
     )
+  }
+
+  function clearFilters() {
+    refilter(() => {
+      setSelectedTags([])
+      setSearch('')
+    })
   }
 
   async function handleLoadMore() {
@@ -156,53 +196,6 @@ export function FeedPage({ navigate = defaultNavigate }) {
     }
   }
 
-  async function handleLike(post) {
-    if (!isAuthenticated) {
-      navigate('/login')
-      return
-    }
-
-    const willLike = !post.likedByMe
-
-    setPosts((current) =>
-      current.map((candidate) =>
-        candidate.id === post.id
-          ? {
-              ...candidate,
-              likedByMe: willLike,
-              likesCount: Math.max(
-                0,
-                candidate.likesCount + (willLike ? 1 : -1),
-              ),
-            }
-          : candidate,
-      ),
-    )
-
-    try {
-      await (willLike ? likePost(post.id) : unlikePost(post.id))
-    } catch (requestError) {
-      setPosts((current) =>
-        current.map((candidate) =>
-          candidate.id === post.id
-            ? {
-                ...candidate,
-                likedByMe: post.likedByMe,
-                likesCount: post.likesCount,
-              }
-            : candidate,
-        ),
-      )
-
-      if (toProblemDetails(requestError).status === 401) {
-        navigate('/login')
-        return
-      }
-
-      setError(toProblemDetails(requestError).detail)
-    }
-  }
-
   return (
     <AppTemplate active="feed">
       <div className="flex flex-col gap-10">
@@ -212,11 +205,7 @@ export function FeedPage({ navigate = defaultNavigate }) {
             tags={availableTags}
             selected={selectedTags}
             onToggle={toggleTag}
-            onClear={() => {
-              setSelectedTags([])
-              setLoading(true)
-              setError(null)
-            }}
+            onClear={clearFilters}
           />
         </section>
 
@@ -234,34 +223,36 @@ export function FeedPage({ navigate = defaultNavigate }) {
             </Tab>
           </div>
 
-          {error ? (
-            <p role="alert" className="m-0 text-sm leading-normal text-danger">
-              {error}
-            </p>
-          ) : null}
-
-          {loading ? (
+          {view === VIEW.loading ? (
             <p role="status" className="m-0 text-xl leading-normal text-ink">
               Carregando posts...
             </p>
           ) : null}
 
-          {!loading && !error && posts.length === 0 ? (
+          {view === VIEW.error && error ? (
+            <p role="alert" className="m-0 text-sm leading-normal text-danger">
+              {error}
+            </p>
+          ) : null}
+
+          {view === VIEW.empty ? (
             <p className="m-0 text-xl leading-normal text-muted">
               Nenhum post encontrado. Tente outra busca ou remova os filtros.
             </p>
           ) : null}
 
-          {!loading && posts.length > 0 ? (
-            <PostGrid posts={posts} onLike={handleLike} />
-          ) : null}
+          {view === VIEW.ready ? (
+            <>
+              <PostGrid posts={posts} onLike={handleLike} />
 
-          {!loading && posts.length < total ? (
-            <div className="flex justify-center">
-              <Button onClick={handleLoadMore} disabled={loadingMore}>
-                {loadingMore ? 'Carregando...' : 'Carregar mais'}
-              </Button>
-            </div>
+              {posts.length < total ? (
+                <div className="flex justify-center">
+                  <Button onClick={handleLoadMore} disabled={loadingMore}>
+                    {loadingMore ? 'Carregando...' : 'Carregar mais'}
+                  </Button>
+                </div>
+              ) : null}
+            </>
           ) : null}
         </section>
       </div>

@@ -22,7 +22,7 @@ import App from './App.jsx'
 import { LoginPage } from './pages/LoginPage/LoginPage.jsx'
 import { RegisterPage } from './pages/RegisterPage/RegisterPage.jsx'
 import { getCurrentUser } from './services/auth-service.js'
-import { listPosts, listTags } from './services/posts-service.js'
+import { getPost, listPosts, listTags } from './services/posts-service.js'
 import {
   clearAccessToken,
   saveAccessToken,
@@ -58,6 +58,18 @@ describe('App', () => {
 
     render(<App path="/feed" />)
     expect(await screen.findByLabelText('Buscar posts')).toBeInTheDocument()
+  })
+
+  it('only routes uuid post ids to the post page', () => {
+    // `/posts/..` used to reach the API as `GET /posts/..` (that is, `GET /`).
+    for (const path of ['/posts/..', '/posts/%2F', '/posts/1', '/posts/']) {
+      const { container, unmount } = render(<App path={path} />)
+
+      expect(container.querySelector('h1')).toHaveTextContent('Login')
+      unmount()
+    }
+
+    expect(getPost).not.toHaveBeenCalled()
   })
 
   it('renders the account page on /conta', async () => {

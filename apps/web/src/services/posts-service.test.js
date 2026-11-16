@@ -20,6 +20,8 @@ import {
   unlikePost,
 } from './posts-service.js'
 
+const POST_ID = '9f0c5b8e-9a2f-4c5e-8a1b-3d6f7e8c9a0b'
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -61,18 +63,33 @@ describe('posts-service', () => {
   })
 
   it('reads a post', async () => {
-    const post = { id: 'post-1' }
+    const post = { id: POST_ID }
     apiClient.get.mockResolvedValue({ data: post })
 
-    await expect(getPost('post-1')).resolves.toEqual(post)
-    expect(apiClient.get).toHaveBeenCalledWith('/posts/post-1')
+    await expect(getPost(POST_ID)).resolves.toEqual(post)
+    expect(apiClient.get).toHaveBeenCalledWith(`/posts/${POST_ID}`)
   })
+
+  it.each(['..', '%2F', '', 'not-a-uuid', `${POST_ID}/../..`])(
+    'refuses to build a request for the invalid id %j',
+    async (postId) => {
+      // Interpolating the segment let `/posts/..` become `GET /` on the API.
+      await expect(getPost(postId)).rejects.toThrow('Invalid post id')
+      await expect(likePost(postId)).rejects.toThrow('Invalid post id')
+      await expect(unlikePost(postId)).rejects.toThrow('Invalid post id')
+      await expect(listComments(postId)).rejects.toThrow('Invalid post id')
+
+      expect(apiClient.get).not.toHaveBeenCalled()
+      expect(apiClient.post).not.toHaveBeenCalled()
+      expect(apiClient.delete).not.toHaveBeenCalled()
+    },
+  )
 
   it('creates a post', async () => {
     const input = { title: 'Título' }
-    apiClient.post.mockResolvedValue({ data: { id: 'post-1' } })
+    apiClient.post.mockResolvedValue({ data: { id: POST_ID } })
 
-    await expect(createPost(input)).resolves.toEqual({ id: 'post-1' })
+    await expect(createPost(input)).resolves.toEqual({ id: POST_ID })
     expect(apiClient.post).toHaveBeenCalledWith('/posts', input)
   })
 
@@ -80,24 +97,24 @@ describe('posts-service', () => {
     apiClient.post.mockResolvedValue({})
     apiClient.delete.mockResolvedValue({})
 
-    await likePost('post-1')
-    await unlikePost('post-1')
+    await likePost(POST_ID)
+    await unlikePost(POST_ID)
 
-    expect(apiClient.post).toHaveBeenCalledWith('/posts/post-1/likes')
-    expect(apiClient.delete).toHaveBeenCalledWith('/posts/post-1/likes')
+    expect(apiClient.post).toHaveBeenCalledWith(`/posts/${POST_ID}/likes`)
+    expect(apiClient.delete).toHaveBeenCalledWith(`/posts/${POST_ID}/likes`)
   })
 
   it('lists and creates comments', async () => {
     apiClient.get.mockResolvedValue({ data: [] })
     apiClient.post.mockResolvedValue({ data: { id: 'comment-1' } })
 
-    await expect(listComments('post-1')).resolves.toEqual([])
+    await expect(listComments(POST_ID)).resolves.toEqual([])
     await expect(
-      createComment('post-1', { body: 'Oi', parentId: 'comment-0' }),
+      createComment(POST_ID, { body: 'Oi', parentId: 'comment-0' }),
     ).resolves.toEqual({ id: 'comment-1' })
 
-    expect(apiClient.get).toHaveBeenCalledWith('/posts/post-1/comments')
-    expect(apiClient.post).toHaveBeenCalledWith('/posts/post-1/comments', {
+    expect(apiClient.get).toHaveBeenCalledWith(`/posts/${POST_ID}/comments`)
+    expect(apiClient.post).toHaveBeenCalledWith(`/posts/${POST_ID}/comments`, {
       body: 'Oi',
       parentId: 'comment-0',
     })

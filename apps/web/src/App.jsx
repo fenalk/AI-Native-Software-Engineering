@@ -17,7 +17,12 @@ const ROUTES = {
   '/sobre': 'about',
 }
 
-const POST_PATH = /^\/posts\/([^/]+)\/?$/
+/**
+ * Post ids are UUIDs. Anything else (`/posts/..`, `/posts/%2F`) is not a post
+ * route, so it must not reach the API as `GET /posts/..`.
+ */
+const POST_PATH =
+  /^\/posts\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\/?$/i
 
 const defaultNavigate = (path) => window.location.assign(path)
 

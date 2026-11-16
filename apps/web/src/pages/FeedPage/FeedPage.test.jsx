@@ -9,12 +9,7 @@ vi.mock('../../services/posts-service.js', () => ({
   unlikePost: vi.fn(),
 }))
 
-import {
-  likePost,
-  listPosts,
-  listTags,
-  unlikePost,
-} from '../../services/posts-service.js'
+import { likePost, listPosts, listTags } from '../../services/posts-service.js'
 import { SessionContext } from '../../session/session-context.js'
 import { FeedPage } from './FeedPage.jsx'
 
@@ -61,7 +56,6 @@ beforeEach(() => {
   listTags.mockResolvedValue(TAGS)
   listPosts.mockResolvedValue({ items: [POST], page: 1, limit: 12, total: 1 })
   likePost.mockResolvedValue()
-  unlikePost.mockResolvedValue()
 })
 
 describe('FeedPage', () => {
@@ -155,6 +149,47 @@ describe('FeedPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('ignores a second click while the request is in flight', async () => {
+    // Two racing requests left the optimistic counter wrong.
+    let resolveLike
+    likePost.mockImplementation(
+      () => new Promise((resolve) => (resolveLike = resolve)),
+    )
+
+    const user = userEvent.setup()
+    renderFeed({ isAuthenticated: true })
+
+    await screen.findByRole('heading', { name: POST.title })
+    const button = screen.getByRole('button', { name: 'Curtir post' })
+
+    await user.click(button)
+    await user.click(screen.getByRole('button', { name: 'Remover curtida' }))
+    resolveLike()
+    await waitFor(() => expect(likePost).toHaveBeenCalledTimes(1))
+
+    expect(
+      screen.getByRole('button', { name: 'Remover curtida' }),
+    ).toBeInTheDocument()
+  })
+
+  it('rolls the like back and shows the problem when the request fails', async () => {
+    likePost.mockRejectedValue({
+      response: {
+        status: 500,
+        data: { title: 'Internal Server Error', detail: 'Falha ao curtir', status: 500 },
+      },
+    })
+
+    const user = userEvent.setup()
+    renderFeed({ isAuthenticated: true })
+
+    await screen.findByRole('heading', { name: POST.title })
+    await user.click(screen.getByRole('button', { name: 'Curtir post' }))
+
+    // A failed interaction surfaces its problem without discarding the grid.
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha ao curtir')
+  })
+
   it('shows an empty state when nothing matches', async () => {
     listPosts.mockResolvedValue({ items: [], page: 1, limit: 12, total: 0 })
     renderFeed()
@@ -162,5 +197,31 @@ describe('FeedPage', () => {
     expect(
       await screen.findByText(/Nenhum post encontrado/),
     ).toBeInTheDocument()
+  })
+
+  it('returns to the loading state after a failure and a new filter', async () => {
+    // The stale error used to stay on screen next to the next attempt.
+    listPosts.mockRejectedValueOnce({
+      response: {
+        status: 500,
+        data: { title: 'Internal Server Error', detail: 'API fora', status: 500 },
+      },
+    })
+
+    const user = userEvent.setup()
+    renderFeed()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('API fora')
+
+    await user.click(screen.getByRole('button', { name: 'React' }))
+
+    // The stale error is gone and the fresh attempt replaces it with the grid.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: POST.title }),
+    ).toBeInTheDocument()
+    expect(listPosts).toHaveBeenLastCalledWith(
+      expect.objectContaining({ tags: ['react'] }),
+    )
   })
 })
