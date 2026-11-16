@@ -7,6 +7,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
+import { validateEnvironment } from './auth/jwt.config.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 import { createValidationPipe } from './common/validation.pipe.js';
 import { PostsModule } from './posts/posts.module.js';
@@ -14,7 +15,9 @@ import { UsersModule } from './users/users.module.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // Validation fails the boot on a missing or public `JWT_SECRET` outside
+    // development and tests (see `validateEnvironment`).
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }),
     // `forRootAsync` reads the connection string when the application boots
     // instead of when this file is imported, so `.env` is already loaded.
     DrizzleModule.forRootAsync({

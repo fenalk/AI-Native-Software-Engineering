@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { User } from '../users/user.js';
 import { UsersService } from '../users/users.service.js';
 import type { AccessTokenPayload } from './access-token.js';
-import { JWT_SECRET } from './jwt.config.js';
 
 /**
  * Validates the Bearer token and loads the user it belongs to. The returned
@@ -12,11 +12,14 @@ import { JWT_SECRET } from './jwt.config.js';
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly usersService: UsersService) {
+  constructor(
+    private readonly usersService: UsersService,
+    configService: ConfigService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: JWT_SECRET,
+      secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
 

@@ -1,4 +1,5 @@
 import { UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { UsersService } from '../users/users.service.js';
 import { JwtStrategy } from './jwt.strategy.js';
@@ -14,6 +15,10 @@ describe('JwtStrategy', () => {
       providers: [
         JwtStrategy,
         { provide: UsersService, useValue: { findById } },
+        {
+          provide: ConfigService,
+          useValue: { getOrThrow: () => 'test-secret' },
+        },
       ],
     }).compile();
 
