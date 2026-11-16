@@ -17,7 +17,10 @@ const ROUTES = {
   '/sobre': 'about',
 }
 
-const POST_PATH = /^\/posts\/([^/]+)\/?$/
+// Post ids are UUIDs: anything else (`/posts/%2F`, `/posts/abc`) falls through
+// to the unknown-route page instead of rendering `PostPage` and calling the API.
+const POST_PATH =
+  /^\/posts\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i
 
 const defaultNavigate = (path) => window.location.assign(path)
 

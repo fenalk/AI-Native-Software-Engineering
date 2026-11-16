@@ -22,7 +22,12 @@ import App from './App.jsx'
 import { LoginPage } from './pages/LoginPage/LoginPage.jsx'
 import { RegisterPage } from './pages/RegisterPage/RegisterPage.jsx'
 import { getCurrentUser } from './services/auth-service.js'
-import { listPosts, listTags } from './services/posts-service.js'
+import {
+  getPost,
+  listComments,
+  listPosts,
+  listTags,
+} from './services/posts-service.js'
 import {
   clearAccessToken,
   saveAccessToken,
@@ -47,6 +52,29 @@ describe('App', () => {
     const fallback = render(<App path="/algo-inexistente" />)
     expect(fallback.container.querySelector('h1')).toHaveTextContent('Login')
   })
+
+  it('renders the post page only for a UUID post id', async () => {
+    const id = '9f0c5b8e-9a2f-4c5e-8a1b-3d6f7e8c9a0b'
+    getPost.mockReturnValue(new Promise(() => {}))
+    listComments.mockReturnValue(new Promise(() => {}))
+
+    render(<App path={`/posts/${id}`} />)
+
+    expect(await screen.findByText('Carregando post...')).toBeInTheDocument()
+    expect(getPost).toHaveBeenCalledWith(id)
+  })
+
+  it.each(['/posts/%2F', '/posts/abc', '/posts/..', '/posts/1 OR 1=1'])(
+    'does not call the API for the malformed post path %s',
+    (path) => {
+      getPost.mockClear()
+
+      const { container } = render(<App path={path} />)
+
+      expect(getPost).not.toHaveBeenCalled()
+      expect(container.querySelector('h1')).toHaveTextContent('Login')
+    },
+  )
 
   it('renders the feed on / and on /feed', async () => {
     listTags.mockResolvedValue([])
