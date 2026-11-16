@@ -1,9 +1,11 @@
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { getDrizzleToken } from '@nestjs/drizzle';
 import { inArray } from 'drizzle-orm';
 import { AppModule } from '../app.module.js';
 import { PasswordHasherService } from '../users/password-hasher.service.js';
 import type { Database } from './database.js';
+import { assertSeedAllowed } from './seed-guard.js';
 import {
   comments,
   postLikes,
@@ -18,7 +20,11 @@ import {
  * mocked authors, thumbnails, likes and comments.
  *
  * Run with `pnpm api db:seed` (after `db:migrate`). It is destructive: every
- * existing post and tag is removed.
+ * existing post and tag is removed, so `assertSeedAllowed` refuses production
+ * and non-local databases (unless `SEED_ALLOW_REMOTE=true`).
+ *
+ * The demo password is public on purpose: these accounts only exist in
+ * development databases.
  */
 const DEMO_PASSWORD = 'senha-segura';
 
@@ -262,6 +268,13 @@ async function seed(): Promise<void> {
   });
 
   try {
+    const config = app.get(ConfigService);
+    assertSeedAllowed({
+      NODE_ENV: config.get<string>('NODE_ENV'),
+      DATABASE_URL: config.get<string>('DATABASE_URL'),
+      SEED_ALLOW_REMOTE: config.get<string>('SEED_ALLOW_REMOTE'),
+    });
+
     const db = app.get<Database>(getDrizzleToken());
     const passwordHasher = app.get(PasswordHasherService);
     const passwordHash = await passwordHasher.hash(DEMO_PASSWORD);
