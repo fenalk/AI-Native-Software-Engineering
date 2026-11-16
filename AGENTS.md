@@ -2,7 +2,7 @@
 
 ## Estrutura do repositório
 
-- Workspace pnpm (`pnpm-workspace.yaml` → `apps/*`), um único repositório git na raiz. Sandbox do curso de AI-Native Software Engineering da Alura; nenhum domínio de negócio implementado ainda.
+- Workspace pnpm (`pnpm-workspace.yaml` → `apps/*`), um único repositório git na raiz. Sandbox do curso de AI-Native Software Engineering da Alura, com autenticação, feed de posts, curtidas e comentários.
 - `apps/web` — React 19 + Vite 8, **JavaScript puro** (sem TypeScript).
 - `apps/api` — NestJS 12, TypeScript em modo **ESM**, testes com Vitest.
 - `Setup/` — material de estudo do curso (conceitos de modelos de IA), não é código da aplicação. Não importe nem "corrija".
@@ -20,9 +20,10 @@ Execute a partir da raiz do repositório. `pnpm web <cmd>` e `pnpm api <cmd>` re
 | Um teste de componente/página web | `pnpm web test src/components/atoms/Checkbox/Checkbox.test.jsx` |
 | Testes unitários em modo watch | `pnpm api test:watch` |
 | Testes e2e da API | `pnpm api test:e2e` |
+| Recriar o feed de demonstração (destrutivo) | `pnpm api db:seed` |
 | Lint de tudo / build de tudo | `pnpm lint` / `pnpm build` |
 
-- O `pnpm test` da raiz roda `vitest run` e considera apenas `**/*.spec.ts`; os e2e (`test/**/*.e2e-spec.ts`) precisam de `pnpm api test:e2e`.
+- `pnpm test` roda o `vitest run` de cada app (web `src/**/*.test.{js,jsx}`, API `**/*.spec.ts`); os e2e da API (`test/**/*.e2e-spec.ts`) precisam de `pnpm api test:e2e` e do container de pé.
 - A porta da API respeita `PORT` (padrão 3000).
 
 ## Banco de dados
@@ -30,7 +31,15 @@ Execute a partir da raiz do repositório. `pnpm web <cmd>` e `pnpm api <cmd>` re
 - PostgreSQL sobe pelo `docker-compose.yml` na raiz (`docker compose up -d --wait`), com volume nomeado `ai-native_postgres-data` e porta **5433** no host (o 5432 costuma estar ocupado por um PostgreSQL local). `POSTGRES_PORT` troca a porta.
 - A API usa **Drizzle ORM** via `@nestjs/drizzle`: schema em `apps/api/src/db/schema.ts`, migrations versionadas em `apps/api/drizzle/` e queries em repositórios injetáveis (ex.: `UsersRepository`).
 - `DATABASE_URL` e `TEST_DATABASE_URL` ficam em `apps/api/.env` (veja `.env.example`). Depois de mudar o schema, rode `pnpm api db:generate` e versione o SQL; `pnpm api db:migrate` aplica as migrations.
-- `pnpm api test` não usa banco (os unitários mockam os repositórios). `pnpm api test:e2e` exige o container de pé, usa o banco `ainative_test` e aplica as migrations automaticamente.
+- `pnpm api test` não usa banco (os unitários mockam os repositórios). `pnpm api test:e2e` exige o container de pé, usa o banco `ainative_test` e aplica as migrations automaticamente. As suítes compartilham o banco e truncam tabelas, por isso `vitest.config.e2e.ts` roda com `fileParallelism: false`; os testes limpam com `TRUNCATE TABLE users, tags CASCADE`.
+
+### Feed de posts
+
+- Tabelas: `posts`, `tags`, `post_tags`, `post_likes` e `comments`; `users` ganhou `username` e `avatar_url` (nullable). O handle público é `username ?? slug(name)`.
+- `posts.search_document` é uma coluna `tsvector` gerada em português e indexada com GIN. A busca usa `websearch_to_tsquery('portuguese', ...)`; as tags filtram por AND.
+- Queries ficam em `PostsRepository`; o mapeamento para DTOs e as regras de curtida/comentário ficam em `PostsService`.
+- Leitura (`GET /posts`, `GET /posts/:id`, `GET /posts/:id/comments`, `GET /tags`) é pública, mas usa `@Public()` + `OptionalJwtAuthGuard` para devolver `likedByMe` quando há Bearer válido. Escrita exige o guard global.
+- `pnpm api db:seed` recria o feed de demonstração (`ada@codeconnect.dev` / `senha-segura`). É destrutivo: apaga posts e tags antes de inserir. As thumbnails ficam em `apps/web/public/seed/`.
 
 ## Windows: pnpm.exe está bloqueado nesta máquina
 
@@ -72,8 +81,10 @@ Todo endpoint novo deve seguir REST, não RPC:
 - **Tailwind CSS v4** é o sistema de estilização (`@tailwindcss/vite`, tema em `src/styles/global.css`). Estilize com classes utilitárias no JSX; sem CSS-in-JS, arquivos CSS por componente ou props `style` avulsas. O CSS global serve apenas para importar o Tailwind, declarar o tema e o reset base. Cores e tamanhos seguem as guidelines abaixo.
 - Todo componente deve vir com um teste cobrindo seu uso essencial (renderiza com as props principais + interação principal), colocado como `Component.test.jsx`. Verifique comportamento, não snapshots de marcação.
 - Os testes usam Vitest + `@testing-library/react` (jsdom); `src/test/setup.js` polyfilla `localStorage`/`sessionStorage` porque o Node 26 expõe globais experimentais que sombreiam o jsdom.
-- A integração HTTP fica em `src/services`: `api-client` (axios e Bearer token), `auth-service` (`/sessions`, `/users`, `/users/me`), `session-storage` (chave `code-connect.access-token`) e `problem-details` (erros RFC 9457). As páginas chamam os serviços; os organisms só recebem `onSubmit`, `error`, `fieldErrors` e `submitting`.
-- A sessão vai para `localStorage` quando "Lembrar-me" está marcado e para `sessionStorage` caso contrário. A rota `/conta` consulta `GET /users/me` e é o destino após login ou cadastro.
+- A integração HTTP fica em `src/services`: `api-client` (axios e Bearer token), `auth-service` (`/sessions`, `/users`, `/users/me`), `posts-service` (`/posts`, `/posts/:id/likes`, `/posts/:id/comments`, `/tags`), `session-storage` (chave `code-connect.access-token`) e `problem-details` (erros RFC 9457). As páginas chamam os serviços; os organisms só recebem `onSubmit`, `error`, `fieldErrors` e `submitting`.
+- A sessão vai para `localStorage` quando "Lembrar-me" está marcado e para `sessionStorage` caso contrário. `SessionProvider`/`useSession` carregam `GET /users/me` uma vez e alimentam o menu lateral. Login e cadastro redirecionam para `/feed`; `/conta` continua sendo a página de perfil.
+- As páginas do app usam `AppTemplate` (menu lateral + conteúdo). `/` e `/feed` abrem o feed, `/posts/:id` o detalhe, `/publicar` o formulário e `/sobre` a página estática. O menu alterna **Login** / **Sair** conforme a sessão.
+- Ícones usam a fonte **Material Icons** e o bloco de código usa `font-mono` (Roboto Mono), carregadas no `index.html`. O placeholder de thumbnail é o `PostThumbnail` (cobre `null` e `onError`).
 - Apenas oxlint (`react/rules-of-hooks` é erro).
 
 ### Cores
@@ -86,6 +97,7 @@ A paleta do projeto é a única fonte de cores do web e fica no `@theme` de `src
 | `surface` | `#171d1f` | card |
 | `surface-soft` | `#242826` | superfície secundária |
 | `ink` | `#e1e1e1` | texto principal |
+| `ink-soft` | `#bcbcbc` | texto dos cards e do campo de busca |
 | `muted` | `#888888` | texto secundário |
 | `accent` | `#81fe88` | ação primária |
 | `accent-hover` | `#a1ffa6` | hover da ação primária |
@@ -102,7 +114,7 @@ A paleta do projeto é a única fonte de cores do web e fica no `@theme` de `src
 - Use os utilitários derivados do tema (`bg-canvas`, `bg-surface`, `text-ink`, `text-accent`, `border-edge`, `outline-focus` etc.).
 - Nunca escreva hexadecimal ou `rgb()`/`rgba()` diretamente nas classes (`bg-[#171d1f]`, `text-[#ffffff]`) nem em CSS de componente.
 - Se precisar de uma cor nova, adicione um token semântico `--color-*` ao `@theme` e use o utilitário correspondente; não crie uma paleta paralela.
-- Sombras também são tokens: `--shadow-card` e `--shadow-accent` geram `shadow-card` e `shadow-accent`. Evite `shadow-[...]` com cor literal.
+- Sombras também são tokens: `--shadow-card`, `--shadow-accent` e `--shadow-editor` geram `shadow-card`, `shadow-accent` e `shadow-editor`. Evite `shadow-[...]` com cor literal.
 
 ### Tamanhos de fonte
 

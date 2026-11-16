@@ -93,11 +93,42 @@ docker compose exec postgres createdb -U ainative ainative_test
 |---|---|
 | `pnpm api db:generate` | Gera uma migration SQL a partir de `apps/api/src/db/schema.ts` |
 | `pnpm api db:migrate` | Aplica as migrations pendentes |
+| `pnpm api db:seed` | Recria o feed de demonstração (apaga posts e tags existentes) |
 | `pnpm api db:studio` | Abre o Drizzle Studio |
 
 Versione sempre os arquivos gerados em `apps/api/drizzle/` junto com a mudança de schema.
 `pnpm api test` roda sem banco; `pnpm api test:e2e` exige o container de pé, e as migrations do
 banco de teste são aplicadas automaticamente antes da suíte.
+
+### Feed de posts
+
+O feed público fica em `/feed` (e `/` redireciona para ele). Cada post abre em `/posts/:id`;
+usuários logados publicam em `/publicar`, curtem e comentam. Visitantes leem o feed e o detalhe,
+mas são levados ao login ao tentar interagir.
+
+A API expõe:
+
+| Rota | Descrição |
+|---|---|
+| `GET /posts?search=&tags=&sort=&page=&limit=` | Busca full-text (PostgreSQL, português), filtro por tags (AND) e ordenação `recent`/`popular` |
+| `GET /posts/:id` | Detalhe com o código do post |
+| `POST /posts` | Publica um post (`201` + `Location`) |
+| `POST`/`DELETE /posts/:id/likes` | Curte/descurte de forma idempotente |
+| `GET`/`POST /posts/:id/comments` | Lista e cria comentários (com um nível de respostas) |
+| `GET /tags` | Tags usadas, com contagem de posts |
+
+O seed cria usuários, tags, posts, curtidas e comentários de demonstração. Também inclui um
+post sem thumbnail e outro com URL quebrada para exercitar o placeholder do card.
+
+```bash
+docker compose up -d --wait
+pnpm api db:migrate
+pnpm api db:seed
+```
+
+Credenciais de demonstração: `ada@codeconnect.dev` / `senha-segura` (os demais usuários do seed
+usam a mesma senha). O comando **apaga todos os posts e tags** antes de inserir os dados de
+demonstração; use apenas em desenvolvimento.
 
 ## Estatísticas do código
 
