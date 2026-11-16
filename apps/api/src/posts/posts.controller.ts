@@ -37,6 +37,7 @@ import {
   PostListDto,
 } from './post-response.dto.js';
 import {
+  commentIdSchema,
   createCommentSchema,
   createPostSchema,
   listPostsQuerySchema,
@@ -155,12 +156,17 @@ export class PostsController {
   @Public()
   @UseGuards(OptionalJwtAuthGuard)
   @Get(':id/comments/:commentId')
-  @ApiOperation({ summary: 'Read one comment of a post' })
+  @ApiOperation({
+    summary: 'Read one comment of a post',
+    description:
+      'Target of the `Location` header returned by `POST /posts/:id/comments`. A comment that belongs to another post answers `404`.',
+  })
   @ApiOkResponse({ description: 'The comment.', type: CommentDto })
+  @ApiProblemBadRequestResponse()
   @ApiProblemNotFoundResponse()
   getComment(
     @Param('id', { schema: postIdSchema }) id: string,
-    @Param('commentId', { schema: postIdSchema }) commentId: string,
+    @Param('commentId', { schema: commentIdSchema }) commentId: string,
   ) {
     return this.postsService.getComment(id, commentId);
   }

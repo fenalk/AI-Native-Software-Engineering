@@ -360,6 +360,47 @@ describe('Posts (e2e)', () => {
       expect(replyToReply.body.parentId).toBe(top.body.id);
     });
 
+    it('reads the comment the Location header points at', async () => {
+      const created = await createPost();
+      const id = created.body.id;
+
+      const comment = await request(app.getHttpServer())
+        .post(`/posts/${id}/comments`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ body: 'Muito bom!' })
+        .expect(201);
+
+      const read = await request(app.getHttpServer())
+        .get(comment.headers.location)
+        .expect(200);
+      expect(read.body).toMatchObject({ id: comment.body.id, body: 'Muito bom!' });
+    });
+
+    it('returns 404 when the comment belongs to another post', async () => {
+      const first = await createPost();
+      const second = await createPost({ title: 'Outro post' });
+
+      const comment = await request(app.getHttpServer())
+        .post(`/posts/${first.body.id}/comments`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ body: 'No primeiro post' })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .get(`/posts/${second.body.id}/comments/${comment.body.id}`)
+        .expect(404)
+        .expect('Content-Type', /application\/problem\+json/);
+    });
+
+    it('rejects a malformed comment id with 400', async () => {
+      const created = await createPost();
+
+      await request(app.getHttpServer())
+        .get(`/posts/${created.body.id}/comments/not-a-uuid`)
+        .expect(400)
+        .expect('Content-Type', /application\/problem\+json/);
+    });
+
     it('requires a session', async () => {
       const created = await createPost();
 

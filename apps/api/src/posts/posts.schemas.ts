@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export const postIdSchema = z.uuid();
 
+export const commentIdSchema = z.uuid();
+
 export const listPostsQuerySchema = z.object({
   search: z
     .string()
