@@ -32,6 +32,17 @@ describe('HTTP hardening (e2e)', () => {
     expect(response.headers['x-powered-by']).toBeUndefined();
   });
 
+  it('sets the helmet security headers', async () => {
+    const response = await request(app.getHttpServer()).get('/').expect(200);
+
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
+    expect(response.headers['referrer-policy']).toBe('no-referrer');
+    expect(response.headers['strict-transport-security']).toContain(
+      'max-age=',
+    );
+  });
+
   it('rejects a body above the declared limit with a problem details 413', async () => {
     const response = await request(app.getHttpServer())
       .post('/users')
