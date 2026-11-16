@@ -10,7 +10,7 @@ export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('AI-Native Software Engineering API')
     .setDescription(
-      'Users and JWT authentication for the course sandbox. Data lives in memory and is lost when the API restarts.',
+      'Users, authentication and the Code Connect posts feed. Data lives in PostgreSQL.',
     )
     .setVersion('1.0')
     .addBearerAuth({

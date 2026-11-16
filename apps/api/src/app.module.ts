@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 import { createValidationPipe } from './common/validation.pipe.js';
+import { PostsModule } from './posts/posts.module.js';
 import { UsersModule } from './users/users.module.js';
 
 @Module({
@@ -25,6 +26,7 @@ import { UsersModule } from './users/users.module.js';
     }),
     UsersModule,
     AuthModule,
+    PostsModule,
   ],
   controllers: [AppController],
   providers: [

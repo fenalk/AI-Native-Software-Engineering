@@ -28,7 +28,7 @@ describe('Authentication (e2e)', () => {
     // and every test starts from an empty `users` table.
     await moduleFixture
       .get<Database>(getDrizzleToken())
-      .execute(sql`TRUNCATE TABLE users`);
+      .execute(sql`TRUNCATE TABLE users, tags CASCADE`);
   });
 
   afterEach(async () => {
@@ -165,6 +165,8 @@ describe('Authentication (e2e)', () => {
         id: created.body.id,
         name: 'Ada Lovelace',
         email: 'ada@example.com',
+        username: 'ada-lovelace',
+        avatarUrl: null,
         createdAt: created.body.createdAt,
       });
     });

@@ -29,7 +29,16 @@ describe('Swagger (e2e)', () => {
     const document = response.body;
 
     expect(Object.keys(document.paths)).toEqual(
-      expect.arrayContaining(['/users', '/users/me', '/sessions']),
+      expect.arrayContaining([
+        '/users',
+        '/users/me',
+        '/sessions',
+        '/posts',
+        '/posts/{id}',
+        '/posts/{id}/likes',
+        '/posts/{id}/comments',
+        '/tags',
+      ]),
     );
 
     expect(
