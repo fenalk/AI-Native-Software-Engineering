@@ -10,6 +10,10 @@ import {
   type AccessTokenPayload,
 } from './access-token.js';
 
+/** Compared against when the email is unknown, so both paths cost one `scrypt`. */
+const DUMMY_PASSWORD_HASH =
+  'scrypt$00000000000000000000000000000000$' + '0'.repeat(128);
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -18,14 +22,20 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  /** Returns the user when the credentials match; otherwise sign-in fails with `401`. */
+  /**
+   * Returns the user when the credentials match; otherwise sign-in fails with
+   * `401`. A missing user still pays for one `scrypt` verification, so the
+   * response time does not reveal which emails are registered.
+   */
   async validateUser(email: string, password: string): Promise<User> {
     const credentials = await this.usersService.findCredentials(email);
-    const matches =
-      credentials &&
-      (await this.passwordHasher.verify(password, credentials.passwordHash));
 
-    if (!matches) {
+    const matches = await this.passwordHasher.verify(
+      password,
+      credentials?.passwordHash ?? DUMMY_PASSWORD_HASH,
+    );
+
+    if (!credentials || !matches) {
       throw new UnauthorizedException('Invalid email or password');
     }
 

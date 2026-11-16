@@ -9,12 +9,18 @@ import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 import { createValidationPipe } from './common/validation.pipe.js';
+import { validateEnvironment } from './config/environment.js';
 import { PostsModule } from './posts/posts.module.js';
 import { UsersModule } from './users/users.module.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // Reads `.env` and fails the boot when a required variable is missing or
+      // weak, instead of letting modules fall back to a public default.
+      validate: validateEnvironment,
+    }),
     // `forRootAsync` reads the connection string when the application boots
     // instead of when this file is imported, so `.env` is already loaded.
     DrizzleModule.forRootAsync({

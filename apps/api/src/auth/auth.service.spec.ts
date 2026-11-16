@@ -1,5 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
-import { Test } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { PasswordHasherService } from '../users/password-hasher.service.js';
 import type { UserRecord } from '../users/user.js';
 import { UsersRepository } from '../users/users.repository.js';
@@ -8,6 +8,7 @@ import { AuthService } from './auth.service.js';
 
 describe('AuthService', () => {
   let authService: AuthService;
+  let moduleRef: TestingModule;
   let usersService: UsersService;
   let signAsync: ReturnType<typeof vi.fn>;
   let records: Map<string, UserRecord>;
@@ -29,7 +30,7 @@ describe('AuthService', () => {
       }),
     };
 
-    const moduleRef = await Test.createTestingModule({
+    moduleRef = await Test.createTestingModule({
       providers: [
         AuthService,
         UsersService,
@@ -71,6 +72,22 @@ describe('AuthService', () => {
     await expect(
       authService.validateUser('nobody@example.com', 'senha-segura'),
     ).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('hashes the password even when the email is unknown', async () => {
+    const hasher = moduleRef.get(PasswordHasherService);
+    const verify = vi.spyOn(hasher, 'verify');
+
+    await expect(
+      authService.validateUser('nobody@example.com', 'senha-segura'),
+    ).rejects.toMatchObject({ status: 401 });
+
+    // The dummy hash must be a real scrypt record, otherwise `verify` returns
+    // early and the timing differs from a registered email.
+    expect(verify).toHaveBeenCalledTimes(1);
+    const [, stored] = verify.mock.calls[0];
+    expect(stored).toMatch(/^scrypt\$[0-9a-f]{32}\$[0-9a-f]{128}$/);
+    expect(await hasher.verify('senha-segura', stored)).toBe(false);
   });
 
   it('signs an access token for the user', async () => {
