@@ -1,8 +1,24 @@
-import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('./services/auth-service.js', () => ({
+  getCurrentUser: vi.fn(),
+  signIn: vi.fn(),
+  signUp: vi.fn(),
+}))
+
 import App from './App.jsx'
 import { LoginPage } from './pages/LoginPage/LoginPage.jsx'
 import { RegisterPage } from './pages/RegisterPage/RegisterPage.jsx'
+import { getCurrentUser } from './services/auth-service.js'
+import {
+  clearAccessToken,
+  saveAccessToken,
+} from './services/session-storage.js'
+
+afterEach(() => {
+  clearAccessToken()
+})
 
 describe('App', () => {
   it('renders the registration page on /cadastro', () => {
@@ -18,6 +34,21 @@ describe('App', () => {
 
     const fallback = render(<App path="/algo-inexistente" />)
     expect(fallback.container.querySelector('h1')).toHaveTextContent('Login')
+  })
+
+  it('renders the account page on /conta', async () => {
+    saveAccessToken('token-123')
+    getCurrentUser.mockResolvedValue({
+      id: 'user-1',
+      name: 'Ada Lovelace',
+      email: 'ada@exemplo.com',
+      createdAt: '2026-11-13T12:00:00.000Z',
+    })
+
+    const { container } = render(<App path="/conta" />)
+
+    expect(container.querySelector('h1')).toHaveTextContent('Minha conta')
+    expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument()
   })
 })
 

@@ -9,7 +9,12 @@ import { Divider } from '../../molecules/Divider/Divider.jsx'
 import { FormField } from '../../molecules/FormField/FormField.jsx'
 import { SocialLoginGroup } from '../SocialLoginGroup/SocialLoginGroup.jsx'
 
-export function RegisterForm({ onSubmit }) {
+export function RegisterForm({
+  error = null,
+  fieldErrors = {},
+  onSubmit,
+  submitting = false,
+}) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,7 +29,11 @@ export function RegisterForm({ onSubmit }) {
     <div className="flex flex-col">
       <AuthHeader title="Cadastro" description="Olá! Preencha seus dados." />
 
-      <form className="mt-8 flex flex-col gap-8" onSubmit={handleSubmit}>
+      <form
+        className="mt-8 flex flex-col gap-8"
+        onSubmit={handleSubmit}
+        aria-busy={submitting || undefined}
+      >
         <div className="flex flex-col gap-4">
           <FormField
             id="register-name"
@@ -34,6 +43,7 @@ export function RegisterForm({ onSubmit }) {
             onChange={(event) => setName(event.target.value)}
             placeholder="Nome completo"
             autoComplete="name"
+            error={fieldErrors.name}
             required
           />
           <FormField
@@ -45,6 +55,7 @@ export function RegisterForm({ onSubmit }) {
             onChange={(event) => setEmail(event.target.value)}
             placeholder="Digite seu email"
             autoComplete="email"
+            error={fieldErrors.email}
             required
           />
           <div>
@@ -57,6 +68,7 @@ export function RegisterForm({ onSubmit }) {
               onChange={(event) => setPassword(event.target.value)}
               placeholder="••••••"
               autoComplete="new-password"
+              error={fieldErrors.password}
               required
             />
             <div className="mt-2">
@@ -71,8 +83,19 @@ export function RegisterForm({ onSubmit }) {
           </div>
         </div>
 
-        <Button type="submit" fullWidth iconRight={<ArrowForwardIcon />}>
-          Cadastrar
+        {error ? (
+          <p role="alert" className="m-0 text-sm leading-normal text-danger">
+            {error}
+          </p>
+        ) : null}
+
+        <Button
+          type="submit"
+          fullWidth
+          disabled={submitting}
+          iconRight={<ArrowForwardIcon />}
+        >
+          {submitting ? 'Cadastrando...' : 'Cadastrar'}
         </Button>
       </form>
 

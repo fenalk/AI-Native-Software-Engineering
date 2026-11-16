@@ -10,30 +10,41 @@ import { Divider } from '../../molecules/Divider/Divider.jsx'
 import { FormField } from '../../molecules/FormField/FormField.jsx'
 import { SocialLoginGroup } from '../SocialLoginGroup/SocialLoginGroup.jsx'
 
-export function LoginForm({ onSubmit }) {
-  const [identifier, setIdentifier] = useState('')
+export function LoginForm({
+  error = null,
+  fieldErrors = {},
+  onSubmit,
+  submitting = false,
+}) {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)
 
   function handleSubmit(event) {
     event.preventDefault()
-    onSubmit?.({ identifier, password, remember })
+    onSubmit?.({ email, password, remember })
   }
 
   return (
     <div className="flex flex-col">
       <AuthHeader title="Login" description="Boas-vindas! Faça seu login." />
 
-      <form className="mt-8 flex flex-col gap-8" onSubmit={handleSubmit}>
+      <form
+        className="mt-8 flex flex-col gap-8"
+        onSubmit={handleSubmit}
+        aria-busy={submitting || undefined}
+      >
         <div className="flex flex-col gap-4">
           <FormField
-            id="login-identifier"
-            label="Email ou usuário"
-            name="identifier"
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
-            placeholder="usuario123"
-            autoComplete="username"
+            id="login-email"
+            label="Email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="voce@exemplo.com"
+            autoComplete="email"
+            error={fieldErrors.email}
             required
           />
           <FormField
@@ -45,9 +56,16 @@ export function LoginForm({ onSubmit }) {
             onChange={(event) => setPassword(event.target.value)}
             placeholder="••••••"
             autoComplete="current-password"
+            error={fieldErrors.password}
             required
           />
         </div>
+
+        {error ? (
+          <p role="alert" className="m-0 text-sm leading-normal text-danger">
+            {error}
+          </p>
+        ) : null}
 
         <div className="flex items-center justify-between gap-4">
           <Checkbox
@@ -62,8 +80,13 @@ export function LoginForm({ onSubmit }) {
           </Link>
         </div>
 
-        <Button type="submit" fullWidth iconRight={<ArrowForwardIcon />}>
-          Login
+        <Button
+          type="submit"
+          fullWidth
+          disabled={submitting}
+          iconRight={<ArrowForwardIcon />}
+        >
+          {submitting ? 'Entrando...' : 'Login'}
         </Button>
       </form>
 

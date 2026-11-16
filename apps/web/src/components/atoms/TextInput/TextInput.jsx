@@ -1,7 +1,9 @@
 export function TextInput({
   autoComplete,
   className = '',
+  describedBy,
   id,
+  invalid = false,
   name,
   onChange,
   placeholder,
@@ -16,6 +18,7 @@ export function TextInput({
       type={type}
       className={[
         'h-[41px] w-full rounded border-0 bg-field px-4 py-2 text-sm leading-normal text-field-ink transition-colors placeholder:text-field-ink placeholder:opacity-100 hover:bg-field-hover focus:outline-2 focus:outline-offset-2 focus:outline-accent',
+        invalid ? 'outline-2 outline-offset-2 outline-danger' : '',
         className,
       ]
         .filter(Boolean)
@@ -25,6 +28,8 @@ export function TextInput({
       placeholder={placeholder}
       autoComplete={autoComplete}
       required={required}
+      aria-invalid={invalid || undefined}
+      aria-describedby={describedBy}
     />
   )
 }

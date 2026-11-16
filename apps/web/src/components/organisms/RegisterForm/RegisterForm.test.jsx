@@ -36,4 +36,19 @@ describe('RegisterForm', () => {
       '/login',
     )
   })
+
+  it('shows the form error and disables the button while submitting', () => {
+    render(
+      <RegisterForm
+        error="Este email já está cadastrado."
+        submitting
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Este email já está cadastrado.',
+    )
+    expect(screen.getByRole('button', { name: 'Cadastrando...' })).toBeDisabled()
+  })
 })

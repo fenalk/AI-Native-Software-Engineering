@@ -6,6 +6,7 @@ import App from './App.jsx'
 const titles = {
   '/cadastro': 'Code Connect | Cadastro',
   '/login': 'Code Connect | Login',
+  '/conta': 'Code Connect | Minha conta',
 }
 
 const path = window.location.pathname

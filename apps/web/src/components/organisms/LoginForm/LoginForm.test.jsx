@@ -9,12 +9,12 @@ describe('LoginForm', () => {
     const onSubmit = vi.fn()
     render(<LoginForm onSubmit={onSubmit} />)
 
-    await user.type(screen.getByLabelText('Email ou usuário'), 'usuario123')
+    await user.type(screen.getByLabelText('Email'), 'ada@exemplo.com')
     await user.type(screen.getByLabelText('Senha'), 'senha-secreta')
     await user.click(screen.getByRole('button', { name: 'Login' }))
 
     expect(onSubmit).toHaveBeenCalledWith({
-      identifier: 'usuario123',
+      email: 'ada@exemplo.com',
       password: 'senha-secreta',
       remember: true,
     })
@@ -26,5 +26,37 @@ describe('LoginForm', () => {
     expect(
       screen.getByRole('link', { name: /Crie seu cadastro!/ }),
     ).toHaveAttribute('href', '/cadastro')
+  })
+
+  it('shows the form error and disables the button while submitting', () => {
+    render(
+      <LoginForm
+        error="Email ou senha inválidos."
+        submitting
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Email ou senha inválidos.',
+    )
+    expect(screen.getByRole('button', { name: 'Entrando...' })).toBeDisabled()
+  })
+
+  it('shows a validation error next to the field', () => {
+    render(
+      <LoginForm
+        fieldErrors={{ email: 'Invalid email address' }}
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    const email = screen.getByLabelText('Email')
+    expect(email).toHaveAttribute('aria-invalid', 'true')
+    expect(email).toHaveAttribute('aria-describedby', 'login-email-error')
+    expect(screen.getByText('Invalid email address')).toHaveAttribute(
+      'id',
+      'login-email-error',
+    )
   })
 })
