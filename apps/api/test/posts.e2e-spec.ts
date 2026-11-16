@@ -411,6 +411,122 @@ describe('Posts (e2e)', () => {
     });
   });
 
+  describe('cross-post and concurrent requests', () => {
+    async function signUp(name: string, email: string) {
+      await request(app.getHttpServer())
+        .post('/users')
+        .send({ name, email, password })
+        .expect(201);
+      const session = await request(app.getHttpServer())
+        .post('/sessions')
+        .send({ email, password })
+        .expect(200);
+      return session.body.accessToken as string;
+    }
+
+    it('rejects a reply whose parent belongs to another post', async () => {
+      const first = await createPost();
+      const second = await createPost({ title: 'Outro post' });
+
+      const parent = await request(app.getHttpServer())
+        .post(`/posts/${first.body.id}/comments`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ body: 'No primeiro post' })
+        .expect(201);
+
+      const otherToken = await signUp('Marcia', 'marcia@example.com');
+
+      const response = await request(app.getHttpServer())
+        .post(`/posts/${second.body.id}/comments`)
+        .set('Authorization', `Bearer ${otherToken}`)
+        .send({ body: 'Resposta cruzada', parentId: parent.body.id })
+        .expect(400)
+        .expect('Content-Type', /application\/problem\+json/);
+
+      expect(response.body.detail).toBe(
+        'Parent comment does not belong to this post',
+      );
+
+      const comments = await request(app.getHttpServer())
+        .get(`/posts/${second.body.id}/comments`)
+        .expect(200);
+      expect(comments.body).toEqual([]);
+    });
+
+    it('rejects a reply to a comment that does not exist', async () => {
+      const created = await createPost();
+
+      await request(app.getHttpServer())
+        .post(`/posts/${created.body.id}/comments`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ body: 'Órfã', parentId: '9f0c5b8e-9a2f-4c5e-8a1b-3d6f7e8c9a0b' })
+        .expect(400);
+    });
+
+    it('keeps one like per user under parallel requests', async () => {
+      const created = await createPost();
+      const id = created.body.id;
+      const otherToken = await signUp('Marcia', 'marcia@example.com');
+
+      const likes = [token, token, token, otherToken, otherToken].map(
+        (bearer) =>
+          request(app.getHttpServer())
+            .post(`/posts/${id}/likes`)
+            .set('Authorization', `Bearer ${bearer}`),
+      );
+      const responses = await Promise.all(likes);
+      expect(responses.map((response) => response.status)).toEqual([
+        204, 204, 204, 204, 204,
+      ]);
+
+      const liked = await request(app.getHttpServer())
+        .get(`/posts/${id}`)
+        .expect(200);
+      expect(liked.body.likesCount).toBe(2);
+
+      const unlikes = await Promise.all(
+        [token, token, token].map((bearer) =>
+          request(app.getHttpServer())
+            .delete(`/posts/${id}/likes`)
+            .set('Authorization', `Bearer ${bearer}`),
+        ),
+      );
+      expect(unlikes.map((response) => response.status)).toEqual([
+        204, 204, 204,
+      ]);
+
+      const unliked = await request(app.getHttpServer())
+        .get(`/posts/${id}`)
+        .set('Authorization', `Bearer ${otherToken}`)
+        .expect(200);
+      expect(unliked.body).toMatchObject({ likesCount: 1, likedByMe: true });
+    });
+
+    it('attaches a brand-new tag to posts created in parallel', async () => {
+      const created = await Promise.all(
+        Array.from({ length: 4 }, (_, i) =>
+          request(app.getHttpServer())
+            .post('/posts')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ ...post, title: `Paralelo ${i}`, tags: ['Concorrência'] }),
+        ),
+      );
+      expect(created.map((response) => response.status)).toEqual([
+        201, 201, 201, 201,
+      ]);
+      for (const response of created) {
+        expect(response.body.tags).toEqual([
+          { slug: 'concorrencia', name: 'Concorrência' },
+        ]);
+      }
+
+      const tags = await request(app.getHttpServer()).get('/tags').expect(200);
+      expect(tags.body).toEqual([
+        { slug: 'concorrencia', name: 'Concorrência', postCount: 4 },
+      ]);
+    });
+  });
+
   describe('GET /tags', () => {
     it('lists tags with their post counts', async () => {
       await createPost();
