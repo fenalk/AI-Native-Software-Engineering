@@ -4,3 +4,6 @@ packages:
 # telemetry postinstall. It stays blocked on purpose.
 allowBuilds:
   '@scarf/scarf': false
+  # `esbuild` ships the binary used by `drizzle-kit` to load the schema file;
+  # its postinstall only links the platform-specific package.
+  esbuild: true

@@ -20,7 +20,7 @@ export class AuthService {
 
   /** Returns the user when the credentials match; otherwise sign-in fails with `401`. */
   async validateUser(email: string, password: string): Promise<User> {
-    const credentials = this.usersService.findCredentials(email);
+    const credentials = await this.usersService.findCredentials(email);
     const matches =
       credentials &&
       (await this.passwordHasher.verify(password, credentials.passwordHash));

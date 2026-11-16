@@ -7,6 +7,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import { PasswordHasherService } from './password-hasher.service.js';
 import { normalizeEmail, toUser, type User, type UserRecord } from './user.js';
+import { UsersRepository } from './users.repository.js';
 
 export interface CreateUserInput {
   name: string;
@@ -19,45 +20,42 @@ export interface UserCredentials {
   passwordHash: string;
 }
 
-/**
- * Users kept in memory: they are gone when the API restarts, which is the
- * agreed trade-off until a database comes in.
- */
+/** Users live in PostgreSQL; the `users.email` unique index enforces uniqueness. */
 @Injectable()
 export class UsersService {
-  private readonly records: UserRecord[] = [];
-
-  constructor(private readonly passwordHasher: PasswordHasherService) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly passwordHasher: PasswordHasherService,
+  ) {}
 
   async create({ name, email, password }: CreateUserInput): Promise<User> {
-    const normalizedEmail = normalizeEmail(email);
-    this.assertEmailIsFree(normalizedEmail);
-
     const passwordHash = await this.passwordHasher.hash(password);
-
-    // Registering is async, so check again now that the hash is ready: the
-    // email could have been taken while this call awaited it.
-    this.assertEmailIsFree(normalizedEmail);
 
     const record: UserRecord = {
       id: randomUUID(),
       name: name.trim(),
-      email: normalizedEmail,
+      email: normalizeEmail(email),
       passwordHash,
       createdAt: new Date(),
     };
 
-    this.records.push(record);
-    return toUser(record);
+    // `insert` returns null when another request took the email while this one
+    // hashed the password, so the database settles the race for us.
+    const created = await this.usersRepository.insert(record);
+    if (!created) {
+      throw new ConflictException('Email already registered');
+    }
+
+    return toUser(created);
   }
 
-  findById(id: string): User | null {
-    const record = this.records.find((candidate) => candidate.id === id);
+  async findById(id: string): Promise<User | null> {
+    const record = await this.usersRepository.findById(id);
     return record ? toUser(record) : null;
   }
 
-  getById(id: string): User {
-    const user = this.findById(id);
+  async getById(id: string): Promise<User> {
+    const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -65,10 +63,9 @@ export class UsersService {
   }
 
   /** Only for sign-in, which needs the hash to compare against. */
-  findCredentials(email: string): UserCredentials | null {
-    const normalizedEmail = normalizeEmail(email);
-    const record = this.records.find(
-      (candidate) => candidate.email === normalizedEmail,
+  async findCredentials(email: string): Promise<UserCredentials | null> {
+    const record = await this.usersRepository.findByEmail(
+      normalizeEmail(email),
     );
 
     return record
@@ -77,19 +74,12 @@ export class UsersService {
   }
 
   /** Throws when the user is gone, so the caller can answer `401`. */
-  getCredentials(id: string): UserCredentials {
-    const record = this.records.find((candidate) => candidate.id === id);
+  async getCredentials(id: string): Promise<UserCredentials> {
+    const record = await this.usersRepository.findById(id);
     if (!record) {
       throw new UnauthorizedException('Invalid access token');
     }
 
     return { user: toUser(record), passwordHash: record.passwordHash };
-  }
-
-  private assertEmailIsFree(email: string): void {
-    const taken = this.records.some((record) => record.email === email);
-    if (taken) {
-      throw new ConflictException('Email already registered');
-    }
   }
 }

@@ -1,13 +1,44 @@
 import { Test } from '@nestjs/testing';
-import { UsersService } from './users.service.js';
 import { PasswordHasherService } from './password-hasher.service.js';
+import type { UserRecord } from './user.js';
+import { UsersRepository } from './users.repository.js';
+import { UsersService } from './users.service.js';
 
 describe('UsersService', () => {
   let usersService: UsersService;
+  let records: Map<string, UserRecord>;
 
   beforeEach(async () => {
+    records = new Map();
+
+    // In-memory stand-in for the real queries: `insert` mirrors the unique
+    // index, so the first registration wins and the second gets `null`.
+    const usersRepository = {
+      findById: vi.fn(async (id: string) => records.get(id) ?? null),
+      findByEmail: vi.fn(
+        async (email: string) =>
+          [...records.values()].find((record) => record.email === email) ??
+          null,
+      ),
+      insert: vi.fn(async (record: UserRecord) => {
+        const emailTaken = [...records.values()].some(
+          (candidate) => candidate.email === record.email,
+        );
+        if (emailTaken) {
+          return null;
+        }
+
+        records.set(record.id, record);
+        return record;
+      }),
+    };
+
     const moduleRef = await Test.createTestingModule({
-      providers: [UsersService, PasswordHasherService],
+      providers: [
+        UsersService,
+        PasswordHasherService,
+        { provide: UsersRepository, useValue: usersRepository },
+      ],
     }).compile();
 
     usersService = moduleRef.get(UsersService);
@@ -83,8 +114,8 @@ describe('UsersService', () => {
       password: 'senha-segura',
     });
 
-    expect(usersService.findById(created.id)).toEqual(created);
-    expect(usersService.findById('missing')).toBeNull();
+    expect(await usersService.findById(created.id)).toEqual(created);
+    expect(await usersService.findById('missing')).toBeNull();
   });
 
   it('returns the credentials of a registered user', async () => {
@@ -94,12 +125,12 @@ describe('UsersService', () => {
       password: 'senha-segura',
     });
 
-    const credentials = usersService.findCredentials('ADA@example.com');
+    const credentials = await usersService.findCredentials('ADA@example.com');
 
     expect(credentials?.user).toEqual(created);
     expect(credentials?.passwordHash).toMatch(
       /^scrypt\$[0-9a-f]{32}\$[0-9a-f]{128}$/,
     );
-    expect(usersService.findCredentials('nobody@example.com')).toBeNull();
+    expect(await usersService.findCredentials('nobody@example.com')).toBeNull();
   });
 });

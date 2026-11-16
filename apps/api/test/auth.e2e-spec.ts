@@ -1,7 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { getDrizzleToken } from '@nestjs/drizzle';
+import { sql } from 'drizzle-orm';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
+import type { Database } from './../src/db/database.js';
 import { AppModule } from './../src/app.module.js';
 
 describe('Authentication (e2e)', () => {
@@ -20,6 +23,12 @@ describe('Authentication (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+
+    // The suite runs against a dedicated database (see `test/database.ts`),
+    // and every test starts from an empty `users` table.
+    await moduleFixture
+      .get<Database>(getDrizzleToken())
+      .execute(sql`TRUNCATE TABLE users`);
   });
 
   afterEach(async () => {

@@ -1,6 +1,8 @@
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { PasswordHasherService } from '../users/password-hasher.service.js';
+import type { UserRecord } from '../users/user.js';
+import { UsersRepository } from '../users/users.repository.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthService } from './auth.service.js';
 
@@ -8,15 +10,31 @@ describe('AuthService', () => {
   let authService: AuthService;
   let usersService: UsersService;
   let signAsync: ReturnType<typeof vi.fn>;
+  let records: Map<string, UserRecord>;
 
   beforeEach(async () => {
+    records = new Map();
     signAsync = vi.fn().mockResolvedValue('signed-token');
+
+    const usersRepository = {
+      findById: vi.fn(async (id: string) => records.get(id) ?? null),
+      findByEmail: vi.fn(
+        async (email: string) =>
+          [...records.values()].find((record) => record.email === email) ??
+          null,
+      ),
+      insert: vi.fn(async (record: UserRecord) => {
+        records.set(record.id, record);
+        return record;
+      }),
+    };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         AuthService,
         UsersService,
         PasswordHasherService,
+        { provide: UsersRepository, useValue: usersRepository },
         { provide: JwtService, useValue: { signAsync } },
       ],
     }).compile();

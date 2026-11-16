@@ -20,26 +20,26 @@ describe('JwtStrategy', () => {
     strategy = moduleRef.get(JwtStrategy);
   });
 
-  it('returns the user of the token subject', () => {
+  it('returns the user of the token subject', async () => {
     const user = {
       id: 'user-1',
       name: 'Ada Lovelace',
       email: 'ada@example.com',
       createdAt: new Date(),
     };
-    findById.mockReturnValue(user);
+    findById.mockResolvedValue(user);
 
-    expect(
+    await expect(
       strategy.validate({ sub: 'user-1', email: 'ada@example.com' }),
-    ).toEqual(user);
+    ).resolves.toEqual(user);
     expect(findById).toHaveBeenCalledWith('user-1');
   });
 
-  it('rejects a token whose user no longer exists', () => {
-    findById.mockReturnValue(null);
+  it('rejects a token whose user no longer exists', async () => {
+    findById.mockResolvedValue(null);
 
-    expect(() =>
+    await expect(
       strategy.validate({ sub: 'gone', email: 'ada@example.com' }),
-    ).toThrow(UnauthorizedException);
+    ).rejects.toThrow(UnauthorizedException);
   });
 });

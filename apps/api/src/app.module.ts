@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DrizzleModule } from '@nestjs/drizzle';
 import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -9,7 +12,20 @@ import { createValidationPipe } from './common/validation.pipe.js';
 import { UsersModule } from './users/users.module.js';
 
 @Module({
-  imports: [UsersModule, AuthModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    // `forRootAsync` reads the connection string when the application boots
+    // instead of when this file is imported, so `.env` is already loaded.
+    DrizzleModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        drizzle,
+        connection: configService.getOrThrow<string>('DATABASE_URL'),
+      }),
+    }),
+    UsersModule,
+    AuthModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,
