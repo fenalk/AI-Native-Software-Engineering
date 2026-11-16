@@ -36,6 +36,8 @@ export class UsersService {
       name: name.trim(),
       email: normalizeEmail(email),
       passwordHash,
+      username: null,
+      avatarUrl: null,
       createdAt: new Date(),
     };
 

@@ -8,6 +8,13 @@
       "when": 1794833508464,
       "tag": "0000_legal_sauron",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794841849999,
+      "tag": "0001_medical_barracuda",
+      "breakpoints": true
     }
   ]
 }

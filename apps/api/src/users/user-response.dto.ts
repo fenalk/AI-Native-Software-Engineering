@@ -14,6 +14,20 @@ export class UserResponseDto {
   email: string;
 
   @ApiProperty({
+    description: 'Public handle, without the leading @.',
+    example: 'ada-lovelace',
+  })
+  username: string;
+
+  @ApiProperty({
+    description: 'Avatar URL, when the account has one.',
+    example: null,
+    nullable: true,
+    type: String,
+  })
+  avatarUrl: string | null;
+
+  @ApiProperty({
     description: 'When the user was registered.',
     type: String,
     format: 'date-time',
