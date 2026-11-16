@@ -3,6 +3,23 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
+    # Only code, contracts and the rules the review checks against; docs-only
+    # and session-log PRs do not pay for a review.
+    paths:
+      - 'apps/**'
+      - '!apps/**/*.md'
+      - 'AGENTS.md'
+      - 'apps/*/AGENTS.md'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'docker-compose.yml'
+      - '.github/workflows/**'
+
+# A new push to the same PR cancels the review still running for the old one.
+concurrency:
+  group: claude-review-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   claude-review:
@@ -41,4 +58,6 @@ jobs:
 
             Be concise and only report real problems, citing file and line. Write the review in
             Portuguese (pt-BR). Post it with `gh pr comment` on this PR.
-          claude_args: '--allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
+          # Read-only tools so the agent can open AGENTS.md and the changed
+          # files; the only write it can make is the PR comment.
+          claude_args: '--allowedTools "Read,Grep,Glob,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
