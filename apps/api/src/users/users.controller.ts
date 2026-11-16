@@ -18,6 +18,7 @@ import {
 import type { Response } from 'express';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { Public } from '../auth/public.decorator.js';
+import { AuthRateLimit } from '../common/rate-limit.js';
 import {
   ApiProblemBadRequestResponse,
   ApiProblemConflictResponse,
@@ -34,6 +35,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Public()
+  @AuthRateLimit()
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a user' })

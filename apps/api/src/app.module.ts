@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DrizzleModule } from '@nestjs/drizzle';
 import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -9,6 +10,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { validateEnvironment } from './auth/jwt.config.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
+import { RATE_LIMIT_OPTIONS } from './common/rate-limit.js';
 import { createValidationPipe } from './common/validation.pipe.js';
 import { PostsModule } from './posts/posts.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -27,6 +29,7 @@ import { UsersModule } from './users/users.module.js';
         connection: configService.getOrThrow<string>('DATABASE_URL'),
       }),
     }),
+    ThrottlerModule.forRoot(RATE_LIMIT_OPTIONS),
     UsersModule,
     AuthModule,
     PostsModule,
@@ -38,6 +41,9 @@ import { UsersModule } from './users/users.module.js';
     // get the same pipes, guards and filters as the running application.
     { provide: APP_PIPE, useFactory: createValidationPipe },
     { provide: APP_FILTER, useClass: ProblemDetailsFilter },
+    // Guards run in registration order: rate limiting comes before
+    // authentication, so rejected credentials still count against the budget.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })

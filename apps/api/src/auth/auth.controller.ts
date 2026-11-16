@@ -7,6 +7,7 @@ import {
 import { AccessTokenResponseDto } from './access-token-response.dto.js';
 import { signInSchema, type SignInInput } from './auth.schemas.js';
 import { AuthService } from './auth.service.js';
+import { AuthRateLimit } from '../common/rate-limit.js';
 import { Public } from './public.decorator.js';
 
 @ApiTags('sessions')
@@ -15,6 +16,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @AuthRateLimit()
   @Post()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
