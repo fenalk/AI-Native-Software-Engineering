@@ -30,7 +30,7 @@ Execute a partir da raiz do repositório. `pnpm web <cmd>` e `pnpm api <cmd>` re
 
 - PostgreSQL sobe pelo `docker-compose.yml` na raiz (`docker compose up -d --wait`), com volume nomeado `ai-native_postgres-data` e porta **5433** no host (o 5432 costuma estar ocupado por um PostgreSQL local). `POSTGRES_PORT` troca a porta.
 - A API usa **Drizzle ORM** via `@nestjs/drizzle`: schema em `apps/api/src/db/schema.ts`, migrations versionadas em `apps/api/drizzle/` e queries em repositórios injetáveis (ex.: `UsersRepository`).
-- `DATABASE_URL` e `TEST_DATABASE_URL` ficam em `apps/api/.env` (veja `.env.example`). Depois de mudar o schema, rode `pnpm api db:generate` e versione o SQL; `pnpm api db:migrate` aplica as migrations.
+- `DATABASE_URL`, `TEST_DATABASE_URL`, `NODE_ENV` e `JWT_SECRET` ficam em `apps/api/.env` (veja `.env.example`). O `ConfigModule` valida o ambiente no boot (`validateEnvironment`): fora de `NODE_ENV=development|test`, a API não sobe sem `JWT_SECRET` (≥ 32 caracteres, diferente do fallback público). Depois de mudar o schema, rode `pnpm api db:generate` e versione o SQL; `pnpm api db:migrate` aplica as migrations.
 - `pnpm api test` não usa banco (os unitários mockam os repositórios). `pnpm api test:e2e` exige o container de pé, usa o banco `ainative_test` e aplica as migrations automaticamente. As suítes compartilham o banco e truncam tabelas, por isso `vitest.config.e2e.ts` roda com `fileParallelism: false`; os testes limpam com `TRUNCATE TABLE users, tags CASCADE`.
 
 ### Feed de posts
@@ -39,7 +39,8 @@ Execute a partir da raiz do repositório. `pnpm web <cmd>` e `pnpm api <cmd>` re
 - `posts.search_document` é uma coluna `tsvector` gerada em português e indexada com GIN. A busca usa `websearch_to_tsquery('portuguese', ...)`; as tags filtram por AND.
 - Queries ficam em `PostsRepository`; o mapeamento para DTOs e as regras de curtida/comentário ficam em `PostsService`.
 - Leitura (`GET /posts`, `GET /posts/:id`, `GET /posts/:id/comments`, `GET /tags`) é pública, mas usa `@Public()` + `OptionalJwtAuthGuard` para devolver `likedByMe` quando há Bearer válido. Escrita exige o guard global.
-- `pnpm api db:seed` recria o feed de demonstração (`ada@codeconnect.dev` / `senha-segura`). É destrutivo: apaga posts e tags antes de inserir. As thumbnails ficam em `apps/web/public/seed/`.
+- `pnpm api db:seed` recria o feed de demonstração (`ada@codeconnect.dev` / `senha-segura`). É destrutivo: apaga posts e tags antes de inserir, por isso `assertSeedAllowed` recusa `NODE_ENV=production` e hosts fora de `localhost` sem `SEED_ALLOW_REMOTE=true`. As thumbnails ficam em `apps/web/public/seed/`.
+- `thumbnailUrl` só aceita URL `https` absoluta ou caminho relativo à raiz (`/seed/...`); `javascript:`, `data:`, `http:`, `//host` e caracteres de controle dão `400`. `page` vai até 1000.
 
 ## Windows: pnpm.exe está bloqueado nesta máquina
 
@@ -60,6 +61,8 @@ Para rodar scripts de pacote, use uma build em JS do pnpm: `npm pack pnpm@10.18.
 - Vitest, não Jest: os globals ficam habilitados e `vi.fn()` substitui os mocks do jest. `vitest.config.ts` cobre `*.spec.ts` (colocados junto ao código-fonte); `vitest.config.e2e.ts` cobre `test/*.e2e-spec.ts` via supertest.
 - `nest build` gera em `dist/` com `deleteOutDir` e exclui os specs; `start:prod` = `node dist/main`.
 - Leia `apps/api/AGENTS.md` **antes de adicionar bibliotecas**. O Nest 12 é mais novo que a maior parte dos dados de treinamento (índice da documentação: `https://docs.nestjs.com/llms.txt`), prefira pacotes de primeira linha, e a validação usa Standard Schema (`StandardSchemaValidationPipe`) em vez de class-validator.
+- O hardening HTTP fica em `configureApp` (`src/app.setup.ts`): `helmet()` e limite de body de 100kb. Use-o em `main.ts` **e** nas suítes e2e que testam headers/limites. O rate limit é global (`ThrottlerGuard` antes do `JwtAuthGuard`, 120 req/min por IP); rotas de autenticação usam `@AuthRateLimit()` e criação de conteúdo `@WriteRateLimit()` (`src/common/rate-limit.ts`). Cada e2e cria um app novo, então o contador em memória não vaza entre testes.
+- O `ProblemDetailsFilter` só repassa a mensagem de exceções 4xx; todo 5xx responde com o `detail` genérico e loga apenas `nome: mensagem` com os parâmetros entre aspas mascarados. Nunca coloque mensagem de driver, `cause` ou stack numa `HttpException`.
 - A telemetria do NestJS Observe não está ligada (o `ObserveModule` está ausente), então não há traces/logs de produção disponíveis.
 
 ### Contrato REST
@@ -85,7 +88,10 @@ Todo endpoint novo deve seguir REST, não RPC:
 - A sessão vai para `localStorage` quando "Lembrar-me" está marcado e para `sessionStorage` caso contrário. `SessionProvider`/`useSession` carregam `GET /users/me` uma vez e alimentam o menu lateral. Login e cadastro redirecionam para `/feed`; `/conta` continua sendo a página de perfil.
 - As páginas do app usam `AppTemplate` (menu lateral + conteúdo). `/` e `/feed` abrem o feed, `/posts/:id` o detalhe, `/publicar` o formulário e `/sobre` a página estática. O menu alterna **Login** / **Sair** conforme a sessão.
 - Ícones usam a fonte **Material Icons** e o bloco de código usa `font-mono` (Roboto Mono), carregadas no `index.html`. O placeholder de thumbnail é o `PostThumbnail` (cobre `null` e `onError`).
-- Apenas oxlint (`react/rules-of-hooks` é erro).
+- Apenas oxlint (`react/rules-of-hooks` é erro), rodando com `--deny-warnings`: qualquer warning falha o `pnpm lint` e o CI.
+- Curtir/descurtir passa pelo hook `usePostLike` (otimista, rollback, `401` → login, ignora clique duplo pendente); não duplique esse fluxo nas páginas.
+- O feed renderiza a partir de um único estado `loading/ready/empty/error` (`VIEW` em `FeedPage`), para que um erro antigo não apareça ao lado de uma tentativa nova.
+- As rotas de post só aceitam UUID (`App.jsx`); `posts-service` recusa montar a request com outro valor, porque `/posts/..` vira `GET /` na API.
 
 ### Cores
 
@@ -141,7 +147,22 @@ Use somente a escala padrão do Tailwind (root de 16 px) e escolha o token mais 
   - O escopo é `web` ou `api`; omita-o para mudanças no repositório como um todo. O assunto vai no imperativo, em minúsculas, em inglês (acompanha o histórico existente), sem ponto final.
   - Use o corpo para explicar o *porquê* quando não for óbvio; mudanças que quebram compatibilidade vão no rodapé `BREAKING CHANGE:`.
 - Uma mudança lógica por commit; não misture mudanças de web e api.
-- Ainda não existem hooks de commit nem verificação de lint — siga a convenção manualmente.
+- Não existem hooks de commit — siga a convenção manualmente. O CI (`.github/workflows/ci.yml`) roda lint (`--deny-warnings`), testes unitários, e2e da API e build em todo PR; o `claude-code-review.yml` revisa PRs que tocam código, contratos ou regras.
+
+### Checklist de segurança (code review)
+
+Origem: auditoria em `plans/code-review-seguranca.md`. Cada item tem teste que falha se ele regredir.
+
+- [ ] Entrada de usuário que vira URL (`src`, `href`) é validada no schema: só `https` ou caminho relativo à raiz.
+- [ ] Nenhum segredo com fallback silencioso: variáveis obrigatórias entram em `validateEnvironment` e falham no boot.
+- [ ] Rotas de autenticação e de criação de conteúdo têm rate limit explícito; respostas `429` saem em `problem+json` com `Retry-After`.
+- [ ] Caminhos de autenticação gastam o mesmo trabalho com e sem usuário (sem oráculo de tempo/enumeração).
+- [ ] Respostas 5xx nunca carregam mensagem de driver, `cause` ou stack — e o log não inclui parâmetros de query.
+- [ ] Todo `:param` de ID usa um schema próprio (`postIdSchema`, `commentIdSchema`) e o par pai/filho divergente responde `404`.
+- [ ] Scripts destrutivos (seed, truncates) recusam produção e bancos remotos sem confirmação explícita.
+- [ ] Rotas do web validam o formato do ID antes de chamar a API.
+- [ ] `pnpm lint` sai com código ≠ 0 diante de qualquer warning; nada de `--deny-warnings` removido para "passar o CI".
+- [ ] Nenhum `.env`, `.pem`, `.key` ou caminho absoluto no diff (`git ls-files | grep -iE '\.env$|\.pem$|\.key$'` vazio).
 
 ### Critérios de segurança de commit
 

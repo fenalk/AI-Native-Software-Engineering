@@ -128,7 +128,27 @@ pnpm api db:seed
 
 Credenciais de demonstração: `ada@codeconnect.dev` / `senha-segura` (os demais usuários do seed
 usam a mesma senha). O comando **apaga todos os posts e tags** antes de inserir os dados de
-demonstração; use apenas em desenvolvimento.
+demonstração e **recusa** `NODE_ENV=production` ou qualquer host que não seja `localhost`
+(override explícito: `SEED_ALLOW_REMOTE=true`). Contas que já existem não são alteradas.
+
+`thumbnailUrl` aceita apenas URL `https` absoluta ou caminho relativo à raiz (`/seed/...`).
+
+### Configuração e segurança da API
+
+`apps/api/.env` precisa de `DATABASE_URL`, `TEST_DATABASE_URL` e, fora de desenvolvimento,
+`JWT_SECRET` (mín. 32 caracteres). `NODE_ENV=production` sem um segredo válido faz a API falhar
+no boot em vez de assinar com o fallback público.
+
+| Proteção | Onde |
+|---|---|
+| `helmet()` + `X-Powered-By` desligado + body de 100kb | `apps/api/src/app.setup.ts` |
+| Rate limit global 120/min; login 10/min; criação de conteúdo 30/min (`429` + `Retry-After`) | `apps/api/src/common/rate-limit.ts` |
+| Swagger só fora de produção | `apps/api/src/main.ts` |
+| Log de `5xx` sem parâmetros de query, `cause` ou stack | `apps/api/src/common/problem-details.filter.ts` |
+
+O CI (`.github/workflows/ci.yml`) roda lint (`--deny-warnings`), testes unitários, e2e da API e
+build em todo PR. A auditoria que originou essas regras está em
+[`plans/code-review-seguranca.md`](plans/code-review-seguranca.md).
 
 ## Estatísticas do código
 

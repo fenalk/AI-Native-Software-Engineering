@@ -31,7 +31,9 @@ afterEach(() => {
 
 describe('RegisterPage', () => {
   it('registers, signs in, stores the session and navigates to the account', async () => {
-    const user = userEvent.setup()
+    // Typing four fields with `userEvent` plus `waitFor` runs close to the 5s
+    // default when the whole suite competes for the single jsdom thread.
+    const user = userEvent.setup({ delay: null })
     const navigate = vi.fn()
     signUp.mockResolvedValue({
       id: 'user-1',
@@ -56,7 +58,7 @@ describe('RegisterPage', () => {
       password: 'segredo123',
     })
     expect(readAccessToken()).toBe('token-123')
-  })
+  }, 15_000)
 
   it('shows a friendly message when the email is already registered', async () => {
     const user = userEvent.setup()
