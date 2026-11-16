@@ -15,7 +15,13 @@ src/
 │   └── templates/    # AuthTemplate
 ├── pages/
 │   ├── LoginPage/
-│   └── RegisterPage/
+│   ├── RegisterPage/
+│   └── AccountPage/
+├── services/
+│   ├── api-client.js      # axios + Authorization: Bearer
+│   ├── auth-service.js    # POST /sessions, POST /users, GET /users/me
+│   ├── session-storage.js # token em localStorage/sessionStorage
+│   └── problem-details.js # parsing dos erros RFC 9457
 ├── styles/
 │   └── global.css    # import do Tailwind, tema (cores/fonte) e reset
 └── test/
@@ -35,6 +41,7 @@ Tailwind CSS v4 (`@tailwindcss/vite`). A paleta e a fonte do projeto ficam no
 | `accent` / `accent-hover` / `accent-ink` / `accent-soft` | ação primária e seleção de texto |
 | `field` / `field-hover` / `field-ink` | inputs |
 | `banner` / `edge` / `focus` | banner, borda do card e foco |
+| `danger` | texto e borda de erro |
 | `shadow-card` / `shadow-accent` | sombra do card e hover do botão |
 
 Use os utilitários (`bg-surface`, `text-ink`, `text-accent` etc.) e a escala
@@ -50,8 +57,29 @@ A navegação é resolvida em `App.jsx` a partir do `pathname` (sem router):
 | `/`         | `LoginPage`   |
 | `/login`    | `LoginPage`   |
 | `/cadastro` | `RegisterPage` |
+| `/conta`    | `AccountPage` |
 
-O `main.jsx` ajusta o `document.title` conforme a rota.
+O `main.jsx` ajusta o `document.title` conforme a rota. `/conta` exige sessão: sem
+token, a página volta para o login; com token, consulta `GET /users/me`.
+
+### Integração com a API
+
+O cliente HTTP usa `axios` (`src/services/api-client.js`) com `baseURL` em
+`VITE_API_URL` (padrão `/api`) e injeta `Authorization: Bearer <token>` quando há
+sessão. No desenvolvimento, `vite.config.js` encaminha `/api` para
+`http://localhost:3000` com `rewrite` removendo o prefixo, então a API continua
+exposta em `/sessions`, `/users` e `/users/me` e não precisa de CORS.
+
+- `LoginPage` envia `{ email, password }` para `POST /sessions` e guarda o token.
+- `RegisterPage` envia `{ name, email, password }` para `POST /users` e faz login em
+  seguida.
+- "Lembrar-me" marcado grava o token em `localStorage`; desmarcado, em
+  `sessionStorage`.
+- Erros no formato RFC 9457 (`application/problem+json`) são normalizados por
+  `problem-details.js`; `401` e `409` recebem mensagens em português e os
+  `errors[]` de validação aparecem junto ao campo.
+- Em produção, ou o host roteia `/api` para a API, ou `VITE_API_URL` aponta para a
+  URL pública dela (veja `.env.example`).
 
 ### Reuso entre login e cadastro
 
@@ -60,8 +88,9 @@ O `main.jsx` ajusta o `document.title` conforme a rota.
   (`public/logo-code-connect.svg`); `logo={false}` esconde o logotipo.
 - `AuthHeader`, `AuthFooter`, `Divider`, `FormField`, `Button`, `Checkbox`,
   `Link` e `SocialLoginGroup` são compartilhados pelos dois formulários.
-- `LoginForm` e `RegisterForm` recebem `onSubmit` e concentram apenas o estado
-  do formulário, deixando a integração com a API para a página.
+- `LoginForm` e `RegisterForm` recebem `onSubmit`, `submitting`, `error` e
+  `fieldErrors`, concentrando apenas o estado do formulário e deixando a
+  integração com a API para a página.
 
 ### Assets em `public/`
 
