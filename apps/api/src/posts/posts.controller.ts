@@ -27,8 +27,10 @@ import { Public } from '../auth/public.decorator.js';
 import {
   ApiProblemBadRequestResponse,
   ApiProblemNotFoundResponse,
+  ApiProblemTooManyRequestsResponse,
   ApiProblemUnauthorizedResponse,
 } from '../common/api-problem-response.decorator.js';
+import { WriteRateLimit } from '../common/rate-limit.js';
 import type { User } from '../users/user.js';
 import {
   CommentDto,
@@ -78,11 +80,13 @@ export class PostsController {
   }
 
   @Post()
+  @WriteRateLimit()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Publish a post' })
   @ApiCreatedResponse({ description: 'The created post.', type: PostDetailDto })
   @ApiProblemBadRequestResponse()
   @ApiProblemUnauthorizedResponse()
+  @ApiProblemTooManyRequestsResponse()
   async create(
     @Body({ schema: createPostSchema }) input: CreatePostInput,
     @CurrentUser() user: User,
@@ -132,12 +136,14 @@ export class PostsController {
   }
 
   @Post(':id/comments')
+  @WriteRateLimit()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Comment on a post or reply to a comment' })
   @ApiCreatedResponse({ description: 'The created comment.', type: CommentDto })
   @ApiProblemBadRequestResponse()
   @ApiProblemNotFoundResponse()
   @ApiProblemUnauthorizedResponse()
+  @ApiProblemTooManyRequestsResponse()
   async createComment(
     @Param('id', { schema: postIdSchema }) id: string,
     @Body({ schema: createCommentSchema }) input: CreateCommentInput,

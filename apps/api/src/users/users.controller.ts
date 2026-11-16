@@ -21,8 +21,10 @@ import { Public } from '../auth/public.decorator.js';
 import {
   ApiProblemBadRequestResponse,
   ApiProblemConflictResponse,
+  ApiProblemTooManyRequestsResponse,
   ApiProblemUnauthorizedResponse,
 } from '../common/api-problem-response.decorator.js';
+import { AuthRateLimit } from '../common/rate-limit.js';
 import type { User } from './user.js';
 import { UserResponseDto } from './user-response.dto.js';
 import { createUserSchema, type CreateUserInput } from './users.schemas.js';
@@ -34,6 +36,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Public()
+  @AuthRateLimit()
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a user' })
@@ -48,6 +51,7 @@ export class UsersController {
   })
   @ApiProblemBadRequestResponse()
   @ApiProblemConflictResponse()
+  @ApiProblemTooManyRequestsResponse()
   async create(
     @Body({ schema: createUserSchema }) input: CreateUserInput,
     @Res({ passthrough: true }) response: Response,

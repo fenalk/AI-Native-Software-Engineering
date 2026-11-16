@@ -33,6 +33,12 @@ export const ApiProblemConflictResponse = () =>
     'The resource conflicts with existing data.',
   );
 
+export const ApiProblemTooManyRequestsResponse = () =>
+  problemResponse(
+    HttpStatus.TOO_MANY_REQUESTS,
+    'Rate limit exceeded; see the `Retry-After` header.',
+  );
+
 export const ApiProblemInternalServerErrorResponse = () =>
   problemResponse(
     HttpStatus.INTERNAL_SERVER_ERROR,

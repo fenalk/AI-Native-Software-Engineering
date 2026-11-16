@@ -1,5 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { randomBytes, scrypt } from 'node:crypto';
+import { promisify } from 'node:util';
 import { PasswordHasherService } from '../users/password-hasher.service.js';
 import type { User } from '../users/user.js';
 import { UsersService } from '../users/users.service.js';
@@ -10,9 +12,33 @@ import {
   type AccessTokenPayload,
 } from './access-token.js';
 
-/** Compared against when the email is unknown, so both paths cost one `scrypt`. */
-const DUMMY_PASSWORD_HASH =
-  'scrypt$00000000000000000000000000000000$' + '0'.repeat(128);
+const scryptAsync = promisify(scrypt) as (
+  password: string,
+  salt: Buffer,
+  keylen: number,
+) => Promise<Buffer>;
+
+/** Persisted once, so the unknown-email path never blocks the event loop. */
+const DUMMY_PASSWORD_SALT = randomBytes(16);
+let dummyPasswordHashPromise: Promise<string> | null = null;
+
+/**
+ * A real `scrypt` record compared against when the email is unknown, so both
+ * sign-in paths pay for one `scrypt`. It uses the same salt size and key length
+ * as `PasswordHasherService`, which is what makes the timings comparable.
+ */
+function dummyPasswordHash(): Promise<string> {
+  dummyPasswordHashPromise ??= scryptAsync(
+    'unknown-email',
+    DUMMY_PASSWORD_SALT,
+    64,
+  ).then(
+    (hash) =>
+      `scrypt$${DUMMY_PASSWORD_SALT.toString('hex')}$${hash.toString('hex')}`,
+  );
+
+  return dummyPasswordHashPromise;
+}
 
 @Injectable()
 export class AuthService {
@@ -32,7 +58,7 @@ export class AuthService {
 
     const matches = await this.passwordHasher.verify(
       password,
-      credentials?.passwordHash ?? DUMMY_PASSWORD_HASH,
+      credentials?.passwordHash ?? (await dummyPasswordHash()),
     );
 
     if (!credentials || !matches) {

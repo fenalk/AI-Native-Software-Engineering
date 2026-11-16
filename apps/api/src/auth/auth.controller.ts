@@ -2,8 +2,10 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   ApiProblemBadRequestResponse,
+  ApiProblemTooManyRequestsResponse,
   ApiProblemUnauthorizedResponse,
 } from '../common/api-problem-response.decorator.js';
+import { AuthRateLimit } from '../common/rate-limit.js';
 import { AccessTokenResponseDto } from './access-token-response.dto.js';
 import { signInSchema, type SignInInput } from './auth.schemas.js';
 import { AuthService } from './auth.service.js';
@@ -15,6 +17,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @AuthRateLimit()
   @Post()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -27,6 +30,7 @@ export class AuthController {
     type: AccessTokenResponseDto,
   })
   @ApiProblemBadRequestResponse()
+  @ApiProblemTooManyRequestsResponse()
   @ApiProblemUnauthorizedResponse()
   async signIn(@Body({ schema: signInSchema }) input: SignInInput) {
     const user = await this.authService.validateUser(

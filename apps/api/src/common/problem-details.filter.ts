@@ -36,14 +36,19 @@ export class ProblemDetailsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
+    const instance = httpAdapter.getRequestUrl(ctx.getRequest());
 
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+        : statusFromRawError(exception);
 
-    if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error(exception);
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      // Never `this.logger.error(exception)`: the object carries `cause`,
+      // stack and, for query errors, the SQL with its parameters.
+      this.logger.error(
+        `Unhandled error (${instance}): ${describeForLog(exception)}`,
+      );
     }
 
     const { detail, errors } = describe(exception);
@@ -53,10 +58,10 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       status,
       detail:
         detail ??
-        (status === HttpStatus.INTERNAL_SERVER_ERROR
+        (status >= HttpStatus.INTERNAL_SERVER_ERROR
           ? 'An unexpected error occurred.'
           : httpStatusTitle(status)),
-      instance: httpAdapter.getRequestUrl(ctx.getRequest()),
+      instance,
     };
 
     if (errors) {
@@ -72,6 +77,26 @@ export class ProblemDetailsFilter implements ExceptionFilter {
 interface ExceptionDetail {
   detail?: string;
   errors?: ValidationIssueDto[];
+}
+
+/**
+ * Errors thrown by middleware (the body parser, for instance) are not
+ * `HttpException`s but still carry a client-facing status, such as `413`.
+ */
+function statusFromRawError(exception: unknown): number {
+  const status = (exception as { status?: unknown; statusCode?: unknown })
+    ?.status;
+  const statusCode = (exception as { statusCode?: unknown })?.statusCode;
+
+  for (const candidate of [status, statusCode]) {
+    if (typeof candidate === 'number' && candidate >= 400 && candidate < 500) {
+      return candidate;
+    }
+  }
+
+  // Only client errors the parser itself produces are trusted; anything else
+  // stays the generic server error so internals never leak.
+  return HttpStatus.INTERNAL_SERVER_ERROR;
 }
 
 /** Reads the human-readable message, and any validation issues, off an exception. */
@@ -128,4 +153,23 @@ const STATUS_TITLES: Record<number, string> = {
 
 function httpStatusTitle(status: number): string {
   return STATUS_TITLES[status] ?? 'Error';
+}
+
+/**
+ * Shortest safe message from a logging perspective: class name and message
+ * only. `cause`, `stack` and driver details stay out, because a
+ * `DrizzleQueryError` carries the SQL **and its parameters** (emails, hashes,
+ * comment bodies).
+ */
+export function describeForLog(exception: unknown): string {
+  if (!(exception instanceof Error)) {
+    return `NonError: ${typeof exception}`;
+  }
+
+  return `${exception.name}: ${summarizeParameters(exception.message)}`;
+}
+
+/** Blanks quoted literals so a message that inlines a parameter leaks nothing. */
+function summarizeParameters(message: string): string {
+  return message.replace(/(['"])[^'"]{1,200}\1/g, '$1<redacted>$1');
 }
