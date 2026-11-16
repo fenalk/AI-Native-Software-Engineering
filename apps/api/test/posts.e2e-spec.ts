@@ -370,4 +370,125 @@ describe('Posts (e2e)', () => {
       );
     });
   });
+
+  describe('contract edges', () => {
+    it('rejects a thumbnail that is not https or root-relative', async () => {
+      for (const thumbnailUrl of [
+        'javascript:alert(1)',
+        'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+        'http://images.example.com/cover.png',
+        '//evil.example.com/cover.png',
+      ]) {
+        const response = await request(app.getHttpServer())
+          .post('/posts')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ ...post, thumbnailUrl })
+          .expect(400)
+          .expect('Content-Type', /application\/problem\+json/);
+
+        expect(response.body.errors).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ path: 'thumbnailUrl' }),
+          ]),
+        );
+      }
+    });
+
+    it('rejects a page beyond the maximum instead of scanning a huge offset', async () => {
+      await createPost();
+
+      await request(app.getHttpServer())
+        .get('/posts')
+        .query({ page: '10000000' })
+        .expect(400)
+        .expect('Content-Type', /application\/problem\+json/);
+    });
+
+    it('returns an empty page when the page is past the total', async () => {
+      await createPost();
+
+      const response = await request(app.getHttpServer())
+        .get('/posts')
+        .query({ page: 5 })
+        .expect(200);
+
+      expect(response.body).toMatchObject({ items: [], total: 1 });
+    });
+
+    it('returns 400 for a body that is not JSON', async () => {
+      await request(app.getHttpServer())
+        .post('/posts')
+        .set('Authorization', `Bearer ${token}`)
+        .set('Content-Type', 'text/plain')
+        .send('title=plain')
+        .expect(400)
+        .expect('Content-Type', /application\/problem\+json/);
+    });
+
+    it('reads one comment and 404s when it belongs to another post', async () => {
+      const first = await createPost();
+      const second = await createPost({ title: 'Outro post' });
+
+      const comment = await request(app.getHttpServer())
+        .post(`/posts/${first.body.id}/comments`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ body: 'Muito bom!' })
+        .expect(201);
+
+      const found = await request(app.getHttpServer())
+        .get(`/posts/${first.body.id}/comments/${comment.body.id}`)
+        .expect(200);
+      expect(found.body).toMatchObject({ id: comment.body.id, body: 'Muito bom!' });
+
+      await request(app.getHttpServer())
+        .get(`/posts/${second.body.id}/comments/${comment.body.id}`)
+        .expect(404)
+        .expect('Content-Type', /application\/problem\+json/);
+    });
+
+    it('rejects a parent comment from another post with 400', async () => {
+      const first = await createPost();
+      const second = await createPost({ title: 'Outro post' });
+
+      const parent = await request(app.getHttpServer())
+        .post(`/posts/${first.body.id}/comments`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ body: 'Pai' })
+        .expect(201);
+
+      const response = await request(app.getHttpServer())
+        .post(`/posts/${second.body.id}/comments`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ body: 'Resposta', parentId: parent.body.id })
+        .expect(400)
+        .expect('Content-Type', /application\/problem\+json/);
+
+      expect(response.body.detail).toBe(
+        'Parent comment does not belong to this post',
+      );
+    });
+
+    it('keeps concurrent likes idempotent', async () => {
+      const created = await createPost();
+      const id = created.body.id;
+
+      const attempts = await Promise.all(
+        Array.from({ length: 8 }, () =>
+          request(app.getHttpServer())
+            .post(`/posts/${id}/likes`)
+            .set('Authorization', `Bearer ${token}`),
+        ),
+      );
+
+      expect(attempts.map((attempt) => attempt.status)).toEqual(
+        Array.from({ length: 8 }, () => 204),
+      );
+
+      const detail = await request(app.getHttpServer())
+        .get(`/posts/${id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(detail.body).toMatchObject({ likesCount: 1, likedByMe: true });
+    });
+  });
 });

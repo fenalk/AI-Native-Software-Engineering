@@ -40,6 +40,7 @@ import {
 import {
   createCommentSchema,
   createPostSchema,
+  commentIdSchema,
   listPostsQuerySchema,
   postIdSchema,
   type CreateCommentInput,
@@ -163,7 +164,7 @@ export class PostsController {
   @ApiProblemNotFoundResponse()
   getComment(
     @Param('id', { schema: postIdSchema }) id: string,
-    @Param('commentId', { schema: postIdSchema }) commentId: string,
+    @Param('commentId', { schema: commentIdSchema }) commentId: string,
   ) {
     return this.postsService.getComment(id, commentId);
   }
