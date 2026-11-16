@@ -3,12 +3,11 @@ import { Link } from '../../components/atoms/Link/Link.jsx'
 import { CommentThread } from '../../components/organisms/CommentThread/CommentThread.jsx'
 import { PostCard } from '../../components/organisms/PostCard/PostCard.jsx'
 import { AppTemplate } from '../../components/templates/AppTemplate/AppTemplate.jsx'
+import { usePostLike } from '../../hooks/usePostLike.js'
 import {
   createComment,
   getPost,
-  likePost,
   listComments,
-  unlikePost,
 } from '../../services/posts-service.js'
 import { toProblemDetails } from '../../services/problem-details.js'
 import { useSession } from '../../session/session-context.js'
@@ -50,45 +49,12 @@ export function PostPage({ navigate = defaultNavigate, postId }) {
     }
   }, [postId])
 
-  async function handleLike(currentPost) {
-    if (!isAuthenticated) {
-      navigate('/login')
-      return
-    }
-
-    const willLike = !currentPost.likedByMe
-
-    setPost((current) =>
-      current
-        ? {
-            ...current,
-            likedByMe: willLike,
-            likesCount: Math.max(0, current.likesCount + (willLike ? 1 : -1)),
-          }
-        : current,
-    )
-
-    try {
-      await (willLike ? likePost(currentPost.id) : unlikePost(currentPost.id))
-    } catch (requestError) {
-      setPost((current) =>
-        current
-          ? {
-              ...current,
-              likedByMe: currentPost.likedByMe,
-              likesCount: currentPost.likesCount,
-            }
-          : current,
-      )
-
-      if (toProblemDetails(requestError).status === 401) {
-        navigate('/login')
-        return
-      }
-
-      setError(toProblemDetails(requestError).detail)
-    }
-  }
+  const handleLike = usePostLike({
+    navigate,
+    updatePost: (id, update) =>
+      setPost((current) => (current?.id === id ? update(current) : current)),
+    onError: setError,
+  })
 
   async function handleComment(body, parentId) {
     try {

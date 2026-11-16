@@ -5,14 +5,9 @@ import { SearchField } from '../../components/molecules/SearchField/SearchField.
 import { PostGrid } from '../../components/organisms/PostGrid/PostGrid.jsx'
 import { AppTemplate } from '../../components/templates/AppTemplate/AppTemplate.jsx'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js'
-import {
-  likePost,
-  listPosts,
-  listTags,
-  unlikePost,
-} from '../../services/posts-service.js'
+import { usePostLike } from '../../hooks/usePostLike.js'
+import { listPosts, listTags } from '../../services/posts-service.js'
 import { toProblemDetails } from '../../services/problem-details.js'
-import { useSession } from '../../session/session-context.js'
 
 const PAGE_SIZE = 12
 
@@ -38,7 +33,6 @@ function Tab({ active, children, onClick }) {
 }
 
 export function FeedPage({ navigate = defaultNavigate }) {
-  const { isAuthenticated } = useSession()
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search, 300)
   const [availableTags, setAvailableTags] = useState([])
@@ -159,52 +153,16 @@ export function FeedPage({ navigate = defaultNavigate }) {
     }
   }
 
-  async function handleLike(post) {
-    if (!isAuthenticated) {
-      navigate('/login')
-      return
-    }
-
-    const willLike = !post.likedByMe
-
-    setPosts((current) =>
-      current.map((candidate) =>
-        candidate.id === post.id
-          ? {
-              ...candidate,
-              likedByMe: willLike,
-              likesCount: Math.max(
-                0,
-                candidate.likesCount + (willLike ? 1 : -1),
-              ),
-            }
-          : candidate,
-      ),
-    )
-
-    try {
-      await (willLike ? likePost(post.id) : unlikePost(post.id))
-    } catch (requestError) {
+  const handleLike = usePostLike({
+    navigate,
+    updatePost: (id, update) =>
       setPosts((current) =>
         current.map((candidate) =>
-          candidate.id === post.id
-            ? {
-                ...candidate,
-                likedByMe: post.likedByMe,
-                likesCount: post.likesCount,
-              }
-            : candidate,
+          candidate.id === id ? update(candidate) : candidate,
         ),
-      )
-
-      if (toProblemDetails(requestError).status === 401) {
-        navigate('/login')
-        return
-      }
-
-      fail(requestError)
-    }
-  }
+      ),
+    onError: (message) => setFailure({ key: requestKey, message }),
+  })
 
   return (
     <AppTemplate active="feed">
