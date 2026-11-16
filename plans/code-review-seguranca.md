@@ -55,11 +55,16 @@ contra o contrato do projeto.
 
 ### Preflight obrigatório
 
-- [ ] Reproduzir localmente: `docker compose up -d --wait`, `pnpm api db:migrate`, `pnpm api db:seed`.
-- [ ] `pnpm api test` e `pnpm api test:e2e` verdes na base; senão a auditoria fica contaminada.
-- [ ] `pnpm web test`, `pnpm web lint`, `pnpm api lint` — e confirmar que o lint **realmente falha** (achado P1 #6).
-- [ ] `git diff a8ea2b5..HEAD --stat` vazio no commit inicial da branch.
-- [ ] Sanitizar caminhos absolutos no plano/relatórios (regra de segurança de commit do `AGENTS.md`).
+- [x] Reproduzir localmente: `docker compose up -d --wait`, `pnpm api db:migrate`, `pnpm api db:seed`.
+  (O bind mount `docker/postgres/init` falhou porque o repositório está fora dos caminhos
+  compartilhados do Docker Desktop; o volume já existia, então o container subiu com um override
+  local sem esse mount e o `ainative_test` foi criado com `createdb`. O seed foi validado contra o
+  banco de teste, para não apagar dados de desenvolvimento.)
+- [x] `pnpm api test` (20) e `pnpm api test:e2e` (26) verdes na base.
+- [x] `pnpm web test` (100) verde; `pnpm web lint` e `pnpm api lint` saem com `0` — e com um
+  warning de propósito também saíam com `0`: achado #6 confirmado.
+- [x] `git diff a8ea2b5..HEAD --stat` vazio no commit inicial da branch.
+- [x] Caminhos absolutos sanitizados no plano, nos commits e no log de sessão.
 
 ## 2. Achados preliminares
 
@@ -199,11 +204,12 @@ Verificação funcional:
 
 ## 6. Critérios de aceite
 
-- [ ] Nenhum P0/P1 aberto sem justificativa escrita.
-- [ ] `pnpm api test`, `pnpm api test:e2e`, `pnpm web test` verdes após as correções.
-- [ ] `pnpm lint` falha quando há warning (prova de que o gate funciona).
-- [ ] `git status` limpo, sem `.env`/`.pem`/`.key` no diff e sem caminho absoluto.
-- [ ] O workflow de review responde em um PR de teste **e** em um PR real.
+- [x] Nenhum P0/P1 aberto sem justificativa escrita (ver §9).
+- [x] `pnpm api test` (57), `pnpm api test:e2e` (41), `pnpm web test` (114) verdes após as correções.
+- [x] `pnpm lint` falha quando há warning: arquivo-sonda com variável não usada → exit `1`.
+- [x] `git status` limpo, sem `.env`/`.pem`/`.key` no diff e sem caminho absoluto.
+- [ ] O workflow de review responde em um PR de teste **e** em um PR real — **pendente**: depende
+  de publicar a branch e abrir o PR `chore(review): add security audit baseline`.
 
 ## 7. Fora de escopo
 
@@ -224,6 +230,53 @@ Verificação funcional:
 
 ## Observações
 
-- Nenhum arquivo da aplicação foi alterado por este plano; ele é somente documental.
+- O plano em si é documental; as correções estão nos commits listados em §9.
 - Os achados foram levantados por leitura estática em `a8ea2b5`; a confirmação de cada um
   ocorre na triage da branch, com reprodução e teste antes da correção.
+
+## 9. Resultado da auditoria
+
+Triagem feita em `review/security-audit` sobre `a8ea2b5`. Status: `fixed` (corrigido com teste de
+regressão), `accepted` (mantido com justificativa), `refuted` (premissa não se confirmou, com
+teste que prova), `open` (pendente, com justificativa).
+
+| # | Sev. | Status | Commit | Nota da triagem |
+|---|---|---|---|---|
+| 1 | P0 | fixed | `c625c3c` | Só `http(s)` absoluto ou caminho relativo à raiz; `javascript:`/`data:`/`//host` → `400`. `''` continua significando "sem thumbnail". `BREAKING CHANGE` no rodapé. |
+| 2 | P0 | fixed | `19f7a30` | Além do fallback silencioso, o segredo era lido **antes** de o `ConfigModule` carregar o `.env` (não dava para configurá-lo por lá). Validação Zod no boot; a string de fallback ainda existe no build, mas é recusada fora de `development`/`test`. |
+| 3 | P0 | fixed | `9047d6a` | `helmet()` (CSP compatível com o Swagger UI), body 100kb → `413`, `ThrottlerModule`. CORS segue desligado de propósito: o web usa o proxy `/api` (mesma origem). |
+| 4 | P0 | fixed | `1522780` | Só 4xx repassam `message`; todo 5xx responde o `detail` genérico. Primeiro teste unitário do filtro. |
+| 5 | P0 | fixed | `508ece2`, `9047d6a` | `scrypt` contra hash descartável para e-mail inexistente; `POST /sessions` limitado a 5/min por IP com `429` + `Retry-After`. |
+| 6 | P1 | fixed | `849ee92` | `--deny-warnings` nos dois apps; novo `ci.yml` roda lint, unit, e2e e build. O gate já pegou um `set-state-in-effect` durante o fix #10. |
+| 7 | P1 | fixed | `d7db6b1` | `commentIdSchema`, `400`/`404` documentados, e2e do `Location` → `GET`, do par divergente (`404`) e do ID malformado (`400`). `ApiBearerAuth`/`Location` não se aplicam a um `GET` público. |
+| 8 | P1 | accepted | — | A PK `(post_id, user_id)` de `post_likes` e o `comments_post_idx (post_id, created_at)` já indexam as subqueries; o índice sugerido seria redundante. Count + página fora de transação só afeta o `total` sob escrita concorrente. Reavaliar com `EXPLAIN ANALYZE` acima de ~10k posts. |
+| 9 | P1 | refuted | `b52fe51` | Sob `READ COMMITTED`, o `INSERT … ON CONFLICT DO NOTHING` espera a transação concorrente e a re-leitura vê a tag commitada. Teste e2e com 4 posts paralelos e a mesma tag nova passa; a ordem da re-leitura é irrelevante. |
+| 10 | P1 | fixed | `0ae2032`, `97bb211` | O sintoma descrito (lista vazia após erro) não se reproduziu — virou teste. O bug real: digitar e apagar dentro do debounce deixava "Carregando posts..." preso. `loading`/erro agora derivam da requisição atual; `usePostLike` unifica o like e ignora clique duplo pendente. |
+| 11 | P1 | fixed | `198a36c` | Matcher só aceita UUID; o resto cai na rota desconhecida sem chamar a API. |
+| 12 | P1 | fixed | `b52fe51` | Resposta com `parentId` de outro post/inexistente → `400`; like/unlike paralelos de dois usuários; tags concorrentes. |
+| 13 | P1 | fixed | `b304be9` | `priority` (padrão no `detail`) → `loading="eager"` + `fetchpriority="high"`. Dimensões explícitas desnecessárias: o frame tem altura fixa, sem layout shift. |
+| 14 | P1 | open | — | Confirmado (`feed-02..06.png` são JPEG; `feed-01.png` tem 409 KB). Sem impacto de segurança e sem ferramenta de conversão de imagem nesta máquina; fica para um `perf(web)` junto com `plans/performance-web.md`. |
+| 15 | P1 | fixed | `2f0b407` | Seed recusa `NODE_ENV=production` e host não local sem `SEED_ALLOW_REMOTE=true`; o erro não imprime a connection string. A senha de demo fica (pública por design, só existe em banco de dev). |
+| 16 | P1 | fixed (verificado) | — | `git ls-files` e o histórico só têm `.env.example`; nenhum log imprime `DATABASE_URL`. Há um `.env` não versionado na raiz, coberto pelo `.gitignore`. |
+| 17 | P1 | fixed | `849ee92` | `Read,Grep,Glob` liberados, `concurrency` com `cancel-in-progress` e filtro `paths`. |
+| 18 | P2 | open | — | Comportamento de hard reload em `/conta` e `/posts/:id` não alterado; registrar quando o roteamento for revisto. |
+| 19 | P2 | open | — | `toAuthor` já mapeia campos explícitos (nenhum `UserRow` cru sai na resposta); teste de contrato do DTO fica como melhoria. |
+
+### Achados novos na triagem
+
+- **`JWT_SECRET` ignorado no `.env`** — lido em tempo de import, antes do `ConfigModule`. Corrigido
+  junto com o #2 (`19f7a30`).
+- **Clique duplo no like** — like e unlike concorrentes podiam deixar o contador fora do servidor.
+  Corrigido no `usePostLike` (`97bb211`).
+- **`trust proxy` não configurado** — atrás de um proxy reverso, todos os clientes compartilham o
+  IP do proxy no rate limit. Fora de escopo (depende do deploy, §7.1); anotado em
+  `src/common/rate-limit.ts`.
+- **Init do compose fora dos caminhos compartilhados do Docker Desktop** — problema de ambiente,
+  não do código; contornado no preflight.
+
+### Veredito
+
+Todos os P0 corrigidos com teste de regressão. Dos P1, 10 corrigidos, 1 aceito, 1 refutado e 1
+aberto (#14, sem impacto de segurança). O que falta para fechar a branch é publicá-la e abrir o PR
+de auditoria, para obter o comentário real do `claude-code-review.yml` e a primeira execução do
+`ci.yml` no GitHub.
