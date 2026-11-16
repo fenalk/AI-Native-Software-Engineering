@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { randomBytes } from 'node:crypto';
 import { PasswordHasherService } from '../users/password-hasher.service.js';
 import type { User } from '../users/user.js';
 import { UsersService } from '../users/users.service.js';
@@ -12,6 +13,14 @@ import {
 
 @Injectable()
 export class AuthService {
+  /**
+   * Hash of a random password, built once with the same `scrypt` parameters
+   * as real accounts. Unknown emails are verified against it so they cost as
+   * much as a wrong password and the response time does not reveal which
+   * emails are registered.
+   */
+  private dummyHash?: Promise<string>;
+
   constructor(
     private readonly usersService: UsersService,
     private readonly passwordHasher: PasswordHasherService,
@@ -21,15 +30,29 @@ export class AuthService {
   /** Returns the user when the credentials match; otherwise sign-in fails with `401`. */
   async validateUser(email: string, password: string): Promise<User> {
     const credentials = await this.usersService.findCredentials(email);
-    const matches =
-      credentials &&
-      (await this.passwordHasher.verify(password, credentials.passwordHash));
+
+    if (!credentials) {
+      await this.passwordHasher.verify(password, await this.getDummyHash());
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const matches = await this.passwordHasher.verify(
+      password,
+      credentials.passwordHash,
+    );
 
     if (!matches) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
     return credentials.user;
+  }
+
+  private getDummyHash(): Promise<string> {
+    this.dummyHash ??= this.passwordHasher.hash(
+      randomBytes(32).toString('hex'),
+    );
+    return this.dummyHash;
   }
 
   async login(user: User): Promise<AccessTokenResponseDto> {

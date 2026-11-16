@@ -9,6 +9,7 @@ import { AuthService } from './auth.service.js';
 describe('AuthService', () => {
   let authService: AuthService;
   let usersService: UsersService;
+  let passwordHasher: PasswordHasherService;
   let signAsync: ReturnType<typeof vi.fn>;
   let records: Map<string, UserRecord>;
 
@@ -41,6 +42,7 @@ describe('AuthService', () => {
 
     authService = moduleRef.get(AuthService);
     usersService = moduleRef.get(UsersService);
+    passwordHasher = moduleRef.get(PasswordHasherService);
   });
 
   async function registerUser() {
@@ -71,6 +73,21 @@ describe('AuthService', () => {
     await expect(
       authService.validateUser('nobody@example.com', 'senha-segura'),
     ).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('still runs scrypt for an unknown email, so timing does not leak it', async () => {
+    const verify = vi.spyOn(passwordHasher, 'verify');
+
+    await expect(
+      authService.validateUser('nobody@example.com', 'senha-segura'),
+    ).rejects.toMatchObject({ status: 401 });
+
+    expect(verify).toHaveBeenCalledTimes(1);
+    expect(verify).toHaveBeenCalledWith(
+      'senha-segura',
+      expect.stringMatching(/^scrypt\$[0-9a-f]+\$[0-9a-f]+$/),
+    );
+    await expect(verify.mock.results[0].value).resolves.toBe(false);
   });
 
   it('signs an access token for the user', async () => {
